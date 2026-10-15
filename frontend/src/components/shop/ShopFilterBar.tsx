@@ -251,6 +251,7 @@ export function filtersToQueryArgs(filters: ShopFilters, q: string) {
     | "stock"
     | "price_cents"
     | "published_at"
+    | "publish_year"
     | "discount_percent" = "title";
   let ascending = true;
 
