@@ -1,0 +1,26 @@
+[
+  {
+    "title": "The Great Gatsby",
+    "author": "F. Scott Fitzgerald",
+    "isbn": "9780743273565",
+    "price_cents": 1499,
+    "description": "Test ISBN for Google Books cover fetch.",
+    "stock": 5
+  },
+  {
+    "title": "Pride and Prejudice",
+    "author": "Jane Austen",
+    "isbn": "9780141439518",
+    "price_cents": 1299,
+    "description": "Second test ISBN.",
+    "stock": 5
+  },
+  {
+    "title": "1984",
+    "author": "George Orwell",
+    "isbn": "9780451524935",
+    "price_cents": 1399,
+    "description": "Third test ISBN.",
+    "stock": 5
+  }
+]
