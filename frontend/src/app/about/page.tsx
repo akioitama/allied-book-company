@@ -234,16 +234,15 @@ export default function AboutPage() {
         </div>
 
         <figure className="relative mt-10 overflow-hidden border border-brass/40 shadow-ambient">
-          <div className="relative aspect-[16/10] w-full sm:aspect-[21/10]">
-            <Image
-              src={MAIN_STOREFRONT.src}
-              alt={MAIN_STOREFRONT.alt}
-              fill
-              priority
-              sizes="(max-width: 1152px) 100vw, 1152px"
-              className="object-cover object-center"
-            />
-          </div>
+          <Image
+            src={MAIN_STOREFRONT.src}
+            alt={MAIN_STOREFRONT.alt}
+            width={1024}
+            height={850}
+            priority
+            sizes="(max-width: 1152px) 100vw, 1152px"
+            className="h-auto w-full"
+          />
           <figcaption className="border-t border-brass/30 bg-parchment-deep px-5 py-3 font-body text-sm text-ink-soft md:px-6">
             Allied Book Co. · Naqi Market, 75-The Mall, Lahore
           </figcaption>
