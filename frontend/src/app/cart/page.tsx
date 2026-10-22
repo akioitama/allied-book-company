@@ -136,7 +136,7 @@ export default function CartPage() {
           </p>
           <p className="mt-2 font-body text-sm text-ink-soft">
             {delivery > 0
-              ? "Rs 200 delivery on orders under Rs 8,000."
+              ? "Rs 350 delivery on orders under Rs 8,000."
               : "Free delivery on orders of Rs 8,000 or more."}
           </p>
           <Link

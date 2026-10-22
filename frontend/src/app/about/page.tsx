@@ -233,14 +233,14 @@ export default function AboutPage() {
           </p>
         </div>
 
-        <figure className="relative mt-10 overflow-hidden border border-brass/40 shadow-ambient">
+        <figure className="relative mx-auto mt-10 max-w-3xl overflow-hidden border border-brass/40 shadow-ambient md:max-w-4xl">
           <Image
             src={MAIN_STOREFRONT.src}
             alt={MAIN_STOREFRONT.alt}
             width={1024}
             height={850}
             priority
-            sizes="(max-width: 1152px) 100vw, 1152px"
+            sizes="(max-width: 896px) 100vw, 896px"
             className="h-auto w-full"
           />
           <figcaption className="border-t border-brass/30 bg-parchment-deep px-5 py-3 font-body text-sm text-ink-soft md:px-6">

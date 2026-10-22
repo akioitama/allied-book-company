@@ -193,7 +193,7 @@ export default function CheckoutPage() {
           </p>
           {delivery > 0 ? (
             <p className="mt-2 font-body text-sm text-ink-soft">
-              Rs 200 delivery applies to orders under Rs 8,000.
+              Rs 350 delivery applies to orders under Rs 8,000.
             </p>
           ) : null}
           <div className="mt-6 flex flex-wrap gap-3">
