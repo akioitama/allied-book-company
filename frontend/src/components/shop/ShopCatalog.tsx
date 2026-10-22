@@ -14,10 +14,6 @@ import {
   listCategories,
   type CategoryRecord,
 } from "@/lib/books/supabase-books";
-import {
-  downloadBooksExcel,
-  fetchAllMatchingBooks,
-} from "@/lib/books/export-excel";
 import { SUBJECT_GROUPS } from "@/lib/data/subjects";
 import type { Book } from "@/types";
 
@@ -30,7 +26,7 @@ const DEFAULT_FILTERS: ShopFilters = {
   author: "",
   publishDate: "all",
   purchase: "all",
-  brand: "all",
+  brand: "",
 };
 
 export function ShopCatalog() {
@@ -39,12 +35,14 @@ export function ShopCatalog() {
   const initialQ = params.get("q") ?? "";
   const initialCategory = params.get("category") ?? "";
   const initialAuthor = params.get("author") ?? "";
+  const initialBrand = params.get("brand") ?? "";
 
   const [q, setQ] = useState(initialQ);
   const [filters, setFilters] = useState<ShopFilters>({
     ...DEFAULT_FILTERS,
     category: initialCategory,
     author: initialAuthor,
+    brand: initialBrand,
   });
   const [page, setPage] = useState(1);
   const [books, setBooks] = useState<Book[]>([]);
@@ -59,11 +57,13 @@ export function ShopCatalog() {
     const nextQ = params.get("q") ?? "";
     const nextCategory = params.get("category") ?? "";
     const nextAuthor = params.get("author") ?? "";
+    const nextBrand = params.get("brand") ?? "";
     setQ(nextQ);
     setFilters((f) => ({
       ...f,
       category: nextCategory,
       author: nextAuthor,
+      brand: nextBrand,
     }));
     setPage(1);
   }, [params]);
@@ -92,13 +92,18 @@ export function ShopCatalog() {
       if (author) next.set("author", author);
       else next.delete("author");
     }
+    if ("brand" in patch) {
+      const brand = patch.brand?.trim() ?? "";
+      if (brand && brand.toLowerCase() !== "all") next.set("brand", brand);
+      else next.delete("brand");
+    }
     router.replace(`/shop?${next.toString()}`, { scroll: false });
   };
 
   const updateFilters = (patch: Partial<ShopFilters>) => {
     setFilters((f) => ({ ...f, ...patch }));
     setPage(1);
-    if ("category" in patch || "author" in patch) {
+    if ("category" in patch || "author" in patch || "brand" in patch) {
       syncParams(patch);
     }
   };
@@ -140,6 +145,10 @@ export function ShopCatalog() {
     shelves.find((c) => c.slug === filters.category)?.name;
   const searchTerm = q.trim();
   const authorTerm = filters.author.trim();
+  const brandTerm =
+    filters.brand.trim() && filters.brand.trim().toLowerCase() !== "all"
+      ? filters.brand.trim()
+      : "";
 
   const activeSort = SORT_OPTIONS.find((o) => o.value === filters.sort);
 
@@ -154,10 +163,13 @@ export function ShopCatalog() {
     if (exporting || total === 0) return;
     setExporting(true);
     try {
+      const { fetchAllMatchingBooks, downloadBooksExcel } = await import(
+        "@/lib/books/export-excel"
+      );
       const args = filtersToQueryArgs(filters, q);
       const allBooks = await fetchAllMatchingBooks(args);
       if (allBooks.length === 0) return;
-      downloadBooksExcel(allBooks, exportFilename());
+      await downloadBooksExcel(allBooks, exportFilename());
     } catch (e) {
       console.error("Excel export failed", e);
       setError(
@@ -203,6 +215,15 @@ export function ShopCatalog() {
                     by{" "}
                     <span className="font-semibold text-[#111827]">
                       {authorTerm}
+                    </span>
+                  </>
+                ) : null}
+                {brandTerm ? (
+                  <>
+                    {" "}
+                    · brand{" "}
+                    <span className="font-semibold text-[#111827]">
+                      {brandTerm}
                     </span>
                   </>
                 ) : null}

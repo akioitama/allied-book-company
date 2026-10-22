@@ -15,6 +15,7 @@ type FilterDropdownProps = {
   options: Option[];
   onChange: (value: string) => void;
   className?: string;
+  menuClassName?: string;
   children?: ReactNode;
 };
 
@@ -24,6 +25,7 @@ function FilterDropdown({
   options,
   onChange,
   className,
+  menuClassName,
   children,
 }: FilterDropdownProps) {
   const [open, setOpen] = useState(false);
@@ -69,22 +71,27 @@ function FilterDropdown({
           active && active.value !== "" && active.value !== "all" && "text-[#111827]"
         )}
       >
-        {display}
-        <svg
-          viewBox="0 0 24 24"
-          className={cn("h-3.5 w-3.5 transition", open && "rotate-180")}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          aria-hidden
-        >
-          <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <span className="inline-flex translate-y-[2px] items-center gap-1.5">
+          {display}
+          <svg
+            viewBox="0 0 24 24"
+            className={cn("h-3.5 w-3.5 transition", open && "rotate-180")}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden
+          >
+            <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
       </button>
 
       {open && (
         <div
-          className="absolute left-0 top-full z-50 mt-1 max-h-72 min-w-[12rem] overflow-y-auto rounded border border-[#E5E7EB] bg-white py-1 shadow-lg"
+          className={cn(
+            "absolute left-0 top-full z-50 mt-1 max-h-72 min-w-[12rem] overflow-y-auto rounded border border-[#E5E7EB] bg-white py-1 shadow-lg",
+            menuClassName
+          )}
           onMouseDown={(e) => e.stopPropagation()}
         >
           {children ?? (
@@ -136,35 +143,14 @@ export const SORT_OPTIONS: Option[] = [
   { value: "relevance", label: "Relevance" },
   { value: "title", label: "Title A–Z" },
   { value: "title_desc", label: "Title Z–A" },
-  { value: "price_low", label: "Price: Low to High" },
-  { value: "price_high", label: "Price: High to Low" },
-  { value: "newest", label: "Newest" },
-  { value: "publish_date", label: "Publish Date" },
-];
-
-const FEATURED_OPTIONS: Option[] = [
-  { value: "all", label: "All titles" },
-  { value: "featured", label: "Featured only" },
-  { value: "new", label: "New arrivals" },
-  { value: "bestseller", label: "Bestsellers" },
-  { value: "sale", label: "On sale" },
-];
-
-const PUBLISH_OPTIONS: Option[] = [
-  { value: "all", label: "Any time" },
-  { value: "12m", label: "Last 12 months" },
-  { value: "3y", label: "Last 3 years" },
-  { value: "5y", label: "Last 5 years" },
+  { value: "newest", label: "New to Old" },
+  { value: "oldest", label: "Old to New" },
 ];
 
 const PURCHASE_OPTIONS: Option[] = [
   { value: "all", label: "All options" },
   { value: "in_stock", label: "In stock" },
   { value: "on_sale", label: "On sale" },
-];
-
-const BRAND_OPTIONS: Option[] = [
-  { value: "all", label: "All brands" },
 ];
 
 export function ShopFilterBar({ filters, onChange }: Props) {
@@ -179,18 +165,12 @@ export function ShopFilterBar({ filters, onChange }: Props) {
   return (
     <div className="relative z-30 border-b border-[#E5E7EB] bg-white">
       <div className="mx-auto max-w-6xl px-5 md:px-8">
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+        <div className="mt-[2px] flex flex-wrap items-center justify-center gap-x-6 gap-y-1">
         <FilterDropdown
           label="Sort By"
           value={filters.sort}
           options={SORT_OPTIONS}
           onChange={(sort) => onChange({ sort })}
-        />
-        <FilterDropdown
-          label="Featured"
-          value={filters.featured}
-          options={FEATURED_OPTIONS}
-          onChange={(featured) => onChange({ featured })}
         />
         <FilterDropdown
           label="Subjects"
@@ -221,12 +201,6 @@ export function ShopFilterBar({ filters, onChange }: Props) {
           </div>
         </FilterDropdown>
         <FilterDropdown
-          label="Publish Date"
-          value={filters.publishDate}
-          options={PUBLISH_OPTIONS}
-          onChange={(publishDate) => onChange({ publishDate })}
-        />
-        <FilterDropdown
           label="Purchase Option"
           value={filters.purchase}
           options={PURCHASE_OPTIONS}
@@ -234,10 +208,27 @@ export function ShopFilterBar({ filters, onChange }: Props) {
         />
         <FilterDropdown
           label="Brand"
-          value={filters.brand}
-          options={BRAND_OPTIONS}
-          onChange={(brand) => onChange({ brand })}
-        />
+          value={filters.brand ? "custom" : "all"}
+          options={[
+            { value: "all", label: "All brands" },
+            { value: "custom", label: filters.brand || "Search brand…" },
+          ]}
+          onChange={() => undefined}
+          menuClassName="min-w-[22rem] w-[22rem]"
+        >
+          <div className="p-3">
+            <label className="sr-only" htmlFor="brand-filter">
+              Brand
+            </label>
+            <input
+              id="brand-filter"
+              value={filters.brand === "all" ? "" : filters.brand}
+              onChange={(e) => onChange({ brand: e.target.value })}
+              placeholder="Type brand / publisher…"
+              className="w-full border border-[#D1D5DB] px-3 py-2 font-body text-sm outline-none focus:border-oxblood"
+            />
+          </div>
+        </FilterDropdown>
         </div>
       </div>
     </div>
@@ -264,21 +255,13 @@ export function filtersToQueryArgs(filters: ShopFilters, q: string) {
       orderBy = "title";
       ascending = false;
       break;
-    case "price_low":
-      orderBy = "price_cents";
-      ascending = true;
-      break;
-    case "price_high":
-      orderBy = "price_cents";
-      ascending = false;
-      break;
     case "newest":
-      orderBy = "created_at";
-      ascending = false;
-      break;
-    case "publish_date":
       orderBy = "publish_year";
       ascending = false;
+      break;
+    case "oldest":
+      orderBy = "publish_year";
+      ascending = true;
       break;
     default:
       orderBy = "title";
@@ -310,9 +293,14 @@ export function filtersToQueryArgs(filters: ShopFilters, q: string) {
   const featured = filters.featured;
   const purchase = filters.purchase;
 
+  const brand = filters.brand.trim();
+  const brandQuery =
+    brand && brand.toLowerCase() !== "all" ? brand : undefined;
+
   return {
     q: q || undefined,
     author: filters.author.trim() || undefined,
+    brand: brandQuery,
     category: filters.category || undefined,
     orderBy,
     ascending,

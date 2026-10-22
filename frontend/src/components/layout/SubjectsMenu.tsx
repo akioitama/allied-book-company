@@ -137,14 +137,14 @@ export function SubjectsMenu({ className, inverted }: Props) {
 
             {/* Sub-subjects */}
             <div className="flex min-h-0 flex-col overflow-hidden px-5 py-4 md:px-6">
-              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="font-display text-lg text-ink">
-                  {activeGroup.name}
+              <div className="relative mb-3 flex items-center justify-center gap-2">
+                <h3 className="text-center font-display text-lg text-ink">
+                  {activeGroup.name} Subjects
                 </h3>
                 <Link
                   href={subjectHref(activeGroup)}
                   onClick={() => setOpen(false)}
-                  className="label-caps text-[0.6rem] text-oxblood hover:underline"
+                  className="label-caps absolute right-0 top-1/2 -translate-y-1/2 text-[0.6rem] text-oxblood hover:underline"
                 >
                   View all
                 </Link>

@@ -48,7 +48,7 @@ export function Header() {
                 </span>
               </span>
               <span className="text-white/90">
-                standard delivery on orders above Rs 5,000
+                standard delivery on orders above Rs 8,000
               </span>
             </p>
           </div>
@@ -63,6 +63,26 @@ export function Header() {
             <MastercardBadge />
             <CodBadge />
           </div>
+        </div>
+      </div>
+
+      <div className="border-b border-white/10 bg-[#152238] text-white">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-1.5 px-5 py-2 md:px-8">
+          <a
+            href="mailto:info@alliedbook.com"
+            className="font-label text-[0.65rem] tracking-[0.06em] text-[#93C5FD] transition hover:text-white"
+          >
+            info@alliedbook.com
+          </a>
+          <span className="text-white/25" aria-hidden>
+            |
+          </span>
+          <a
+            href="tel:+923375917645"
+            className="font-label text-[0.65rem] tracking-[0.06em] text-[#93C5FD] transition hover:text-white"
+          >
+            0337-5917645
+          </a>
         </div>
       </div>
 

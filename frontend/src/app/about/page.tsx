@@ -3,6 +3,9 @@ import Link from "next/link";
 
 export const metadata = { title: "About Us" };
 
+const LAHORE_MAPS_URL =
+  "https://www.google.com/maps/dir//Allied+Book+Company,+Naqi+Market,+75+Shahrah-e-Quaid-e-Azam,+Mozang+Chungi,+Lahore,+54000/data=!4m6!4m5!1m1!4e2!1m2!1m1!1s0x391904ad34c0f1cf:0x9075cbabf1281693?sa=X&ved=1t:57443&ictx=111";
+
 const STATS = [
   { value: "1984", label: "Established" },
   { value: "10,000+", label: "Titles in stock" },
@@ -10,202 +13,129 @@ const STATS = [
   { value: "Global", label: "Publisher network" },
 ] as const;
 
-const HIGHLIGHTS = [
-  {
-    title: "Dedicated Team",
-    body: "Our dedicated team always strives hard to serve the customers.",
-    icon: "team",
-  },
-  {
-    title: "Customer's Suggestions",
-    body: "We thankfully acknowledge the continuous support and suggestions we have been getting from our valued clients for improvement in serving our customers more effectively.",
-    icon: "feedback",
-  },
-  {
-    title: "Publishing",
-    body: "We feel pride in publishing and distributing the work of renowned scholars of the country. So we offer our services to publish & distribute work of national scholars in higher education through our established and efficient distribution network throughout the country.",
-    icon: "publish",
-  },
-  {
-    title: "E-books",
-    body: "Considering the future trends of digitization, a counter has been made functional for e-products within our system.",
-    icon: "ebook",
-  },
-  {
-    title: "Cheap / ISE Editions",
-    body: "As we are working in a price conscious environment, it has been our utmost effort to bring in less expensive Books for our readers.",
-    icon: "value",
-  },
-  {
-    title: "In Stock Titles",
-    body: "stock",
-    icon: "catalog",
-  },
-] as const;
+/** Primary storefront — secondary gallery slots for more photos. */
+const MAIN_STOREFRONT = {
+  src: "/storefront-main.jpg",
+  alt: "Allied Book Co. storefront at Naqi Market, 75-The Mall, Lahore",
+};
 
-const SERVICES = [
+const SECONDARY_STOREFRONTS: { src: string; alt: string }[] = [
   {
-    title: "Import Orders",
-    body: "We offer our services to the institutions and individual readers for importing books and reading material against confirm orders.",
+    src: "/storefront-2.jpg",
+    alt: "Allied Book Co. reading room with Accounting, Business, Law, and Computer shelves",
   },
   {
-    title: "Air Freight Free",
-    body: "We bear expenses of air freight at our own using air lift to get the books from leading academic publishers of the world. It takes 5-8 weeks to get the books over here.",
+    src: "/storefront-3.jpg",
+    alt: "Allied Book Co. interior with bookshelves, desk, and waiting area",
   },
   {
-    title: "Free Delivery",
-    body: "The books are delivered to institutional customer at their doorstep free of charge.",
-    italic: true,
-  },
-  {
-    title: "Subscription Services",
-    body: "Services for subscription of international research journals (print & online) are available for institutional and individual customers against pre-payment as per international subscription system.",
-  },
-  {
-    title: "Services For Pharmaceutical Industry",
-    body: "We promote relevant publications from various publishers, to the pharmaceutical industry. We cater bulk specific orders and distribution to their medical fraternity.",
-  },
-] as const;
-
-/** Lahore (main / head office) — ordered by seniority. */
-const MAIN_TEAM: {
-  name: string;
-  role: string;
-  phone?: string;
-  phoneDisplay?: string;
-  photo?: string;
-  initials: string;
-}[] = [
-  {
-    name: "Mr. Nasrullah",
-    role: "Managing Director",
-    phone: "03028414014",
-    phoneDisplay: "0302-8414014",
-    photo: "/team/nasrullah.jpg",
-    initials: "MN",
-  },
-  {
-    name: "Khalid Ali",
-    role: "Operations Manager",
-    photo: "/team/khalid-ali.jpg",
-    initials: "KA",
-  },
-  {
-    name: "Zia Ullah",
-    role: "Sales Manager",
-    phone: "03444224121",
-    phoneDisplay: "0344-4224121",
-    photo: "/team/zia-ullah.jpg",
-    initials: "ZU",
-  },
-  {
-    name: "Ammar NasrUllah",
-    role: "Online Trade Manager",
-    phone: "03054067165",
-    phoneDisplay: "0305-4067165",
-    photo: "/team/ammar-nasrullah.jpg",
-    initials: "AN",
-  },
-  {
-    name: "Atif Ishfaq",
-    role: "Sales Executive",
-    phone: "03157588266",
-    phoneDisplay: "0315-7588266",
-    photo: "/team/atif-ishfaq.jpg",
-    initials: "AI",
-  },
-  {
-    name: "Khalid Javed",
-    role: "Sales Executive",
-    photo: "/team/khalid-javed.jpg",
-    initials: "KJ",
-  },
-  {
-    name: "Maqsood Aziz",
-    role: "Imports",
-    photo: "/team/maqsood-aziz.jpg",
-    initials: "MA",
-  },
-  {
-    name: "Ali Raza",
-    role: "Subscription",
-    photo: "/team/ali-raza.jpg",
-    initials: "AR",
-  },
-  {
-    name: "Fayyaz Mughal",
-    role: "Accounts",
-    photo: "/team/fayyaz-mughal.jpg",
-    initials: "FM",
-  },
-  {
-    name: "Muhammad Ameen",
-    role: "Customer Care",
-    phone: "03375917645",
-    phoneDisplay: "0337-5917645",
-    photo: "/team/muhammad-ameen.jpg",
-    initials: "MA",
+    src: "/storefront-4.jpg",
+    alt: "Allied Book Co. aisle lined with bookshelves leading to the upper level",
   },
 ];
 
-function telHref(phone: string) {
-  return `tel:${phone.replace(/[^\d+]/g, "")}`;
-}
+const OFFICE_CONTACTS = [
+  {
+    role: "Manager",
+    name: "Mr. Nasrullah",
+  },
+  {
+    role: "For General Inquiries",
+    name: "Muhammad Ameen",
+  },
+  {
+    role: "For General Inquiries",
+    name: "Mr. Adeel",
+  },
+  {
+    role: "Journal / Magazine · Psychological Tests & Tools",
+    name: "Mr. Irfan Javed",
+  },
+] as const;
 
-function HighlightIcon({ type }: { type: string }) {
-  const cls = "h-6 w-6 text-[#2563EB]";
-  switch (type) {
-    case "team":
-      return (
-        <svg viewBox="0 0 24 24" className={cls} fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-          <circle cx="9" cy="8" r="3.5" />
-          <circle cx="17" cy="9.5" r="2.5" />
-          <path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5M14 19c0-2.2 1.8-4 4-4" strokeLinecap="round" />
-        </svg>
-      );
-    case "feedback":
-      return (
-        <svg viewBox="0 0 24 24" className={cls} fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-          <path d="M4 5h16v11H7l-3 3V5z" strokeLinejoin="round" />
-          <path d="M8 10h8M8 13h5" strokeLinecap="round" />
-        </svg>
-      );
-    case "publish":
-      return (
-        <svg viewBox="0 0 24 24" className={cls} fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-          <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4z" />
-          <path d="M8 4v13a3 3 0 0 0 3 3M19 7h1a2 2 0 0 1 2 2v10H9" strokeLinecap="round" />
-        </svg>
-      );
-    case "ebook":
-      return (
-        <svg viewBox="0 0 24 24" className={cls} fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-          <rect x="4" y="3" width="16" height="18" rx="2" />
-          <path d="M8 7h8M8 11h8M8 15h5" strokeLinecap="round" />
-        </svg>
-      );
-    case "value":
-      return (
-        <svg viewBox="0 0 24 24" className={cls} fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-          <path d="M12 3l2.4 4.9 5.4.8-3.9 3.8.9 5.3L12 15.8 7.2 17.8l.9-5.3L4.2 8.7l5.4-.8L12 3z" strokeLinejoin="round" />
-        </svg>
-      );
-    default:
-      return (
-        <svg viewBox="0 0 24 24" className={cls} fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-          <path d="M4 6h16M4 10h16M4 14h10M4 18h7" strokeLinecap="round" />
-          <rect x="3" y="4" width="18" height="16" rx="1" />
-        </svg>
-      );
-  }
-}
+type TeamMember = {
+  name: string;
+  role: string;
+  photo?: string;
+  initials: string;
+};
+
+/** Lahore head office — row 1 leads, then two rows of four. */
+const MAIN_TEAM_ROWS: TeamMember[][] = [
+  [
+    {
+      name: "Mr. Nasrullah",
+      role: "Managing Director",
+      photo: "/team/nasrullah.jpg",
+      initials: "MN",
+    },
+    {
+      name: "Ammar NasrUllah",
+      role: "Online Trade Manager",
+      photo: "/team/ammar-nasrullah.jpg",
+      initials: "AN",
+    },
+  ],
+  [
+    {
+      name: "Khalid Ali",
+      role: "Operations Manager",
+      photo: "/team/khalid-ali.jpg",
+      initials: "KA",
+    },
+    {
+      name: "Zia Ullah",
+      role: "Sales Manager",
+      photo: "/team/zia-ullah.jpg",
+      initials: "ZU",
+    },
+    {
+      name: "Atif Ishfaq",
+      role: "Sales Executive",
+      photo: "/team/atif-ishfaq.jpg",
+      initials: "AI",
+    },
+    {
+      name: "Khalid Javed",
+      role: "Sales Executive",
+      photo: "/team/khalid-javed.jpg",
+      initials: "KJ",
+    },
+  ],
+  [
+    {
+      name: "Maqsood Aziz",
+      role: "Imports",
+      photo: "/team/maqsood-aziz.jpg",
+      initials: "MA",
+    },
+    {
+      name: "Ali Raza",
+      role: "Subscription",
+      photo: "/team/ali-raza.jpg",
+      initials: "AR",
+    },
+    {
+      name: "Fayyaz Mughal",
+      role: "Accounts",
+      photo: "/team/fayyaz-mughal.jpg",
+      initials: "FM",
+    },
+    {
+      name: "Muhammad Ameen",
+      role: "Customer Care",
+      photo: "/team/muhammad-ameen.jpg",
+      initials: "MA",
+    },
+  ],
+];
 
 export default function AboutPage() {
   return (
     <>
       {/* Hero */}
       <section
-        className="relative overflow-hidden pt-[8.75rem] text-white md:pt-[7.5rem]"
+        className="relative overflow-hidden pt-[10.75rem] text-white md:pt-[9.5rem]"
         style={{
           background:
             "linear-gradient(150deg, #0F172A 0%, #1E3A8A 45%, #2563EB 100%)",
@@ -215,9 +145,9 @@ export default function AboutPage() {
         <div className="absolute -right-24 top-12 h-72 w-72 rounded-full bg-[#93C5FD]/20 blur-3xl" />
         <div className="absolute -left-16 bottom-0 h-56 w-56 rounded-full bg-[#1E3A8A]/40 blur-3xl" />
 
-        <div className="relative mx-auto max-w-6xl px-5 pb-20 pt-10 md:px-8 md:pb-28 md:pt-14">
-          <div className="flex flex-col items-center text-center">
-            <div className="rounded-full bg-white/10 p-4 ring-1 ring-white/20 backdrop-blur-sm">
+        <div className="relative mx-auto max-w-6xl px-5 pb-16 pt-16 text-center md:px-8 md:pb-20 md:pt-20">
+          <div className="-translate-y-[calc(3.5rem-64px)] md:-translate-y-[calc(5rem-64px)]">
+            <div className="mx-auto inline-flex rounded-full bg-white/10 p-4 ring-1 ring-white/20 backdrop-blur-sm">
               <Image
                 src="/logo.png"
                 alt="Allied Book Co."
@@ -231,28 +161,28 @@ export default function AboutPage() {
               Allied Book{" "}
               <span className="italic text-[#93C5FD]">Co.</span>
             </h1>
-            <p className="mt-6 max-w-2xl font-body text-lg leading-relaxed text-white/85 md:text-xl">
+            <p className="mx-auto mt-6 max-w-2xl font-body text-lg leading-relaxed text-white/85 md:text-xl">
               The Knowledge Provider — serving higher education institutions and
               individual scholars with quality books and reading material across
               Pakistan.
             </p>
-          </div>
 
-          <dl className="mt-14 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-            {STATS.map((stat) => (
-              <div
-                key={stat.label}
-                className="border border-white/15 bg-white/10 px-5 py-5 text-center backdrop-blur-sm md:px-6 md:py-6"
-              >
-                <dt className="font-display text-3xl text-white md:text-4xl">
-                  {stat.value}
-                </dt>
-                <dd className="mt-1 font-label text-[0.62rem] uppercase tracking-[0.18em] text-white/70">
-                  {stat.label}
-                </dd>
-              </div>
-            ))}
-          </dl>
+            <dl className="mt-10 grid grid-cols-2 gap-4 md:mt-12 md:grid-cols-4 md:gap-6">
+              {STATS.map((stat) => (
+                <div
+                  key={stat.label}
+                  className="border border-white/15 bg-white/10 px-5 py-5 text-center backdrop-blur-sm md:px-6 md:py-6"
+                >
+                  <dt className="font-display text-3xl text-white md:text-4xl">
+                    {stat.value}
+                  </dt>
+                  <dd className="mt-1 font-label text-[0.62rem] uppercase tracking-[0.18em] text-white/70">
+                    {stat.label}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         </div>
 
         <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white to-transparent" />
@@ -289,113 +219,111 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Highlights */}
-      <section className="border-y border-brass/30 bg-parchment-deep">
-        <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
-          <div className="max-w-2xl">
-            <p className="eyebrow">What we offer</p>
-            <h2 className="mt-3 font-display text-4xl text-ink md:text-5xl text-balance">
-              Built for readers,{" "}
-              <em className="text-[#2563EB]">institutions & scholars</em>
-            </h2>
-          </div>
-
-          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {HIGHLIGHTS.map((item, index) => (
-              <article
-                key={item.title}
-                className="group map-panel flex flex-col p-7 transition hover:border-[#2563EB]/40 hover:shadow-lift md:p-8"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#EFF6FF] ring-1 ring-[#BFDBFE] transition group-hover:bg-[#DBEAFE]">
-                    <HighlightIcon type={item.icon} />
-                  </span>
-                  <span className="font-label text-[0.58rem] uppercase tracking-[0.2em] text-brass">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                </div>
-                <h3 className="mt-5 font-display text-xl text-ink">
-                  {item.title}
-                </h3>
-                <p className="mt-3 flex-1 font-body leading-relaxed text-ink-soft">
-                  {item.body === "stock" ? (
-                    <>
-                      Our database has an inventory of approx 10,000 titles
-                      available in the ready stock that has been classified by
-                      subjects for customer&apos;s convenience. Complete range
-                      of stocks is available on our website{" "}
-                      <a
-                        href="https://www.alliedbook.com"
-                        className="font-medium text-[#2563EB] underline-offset-2 hover:underline"
-                      >
-                        www.alliedbook.com
-                      </a>
-                      .
-                    </>
-                  ) : (
-                    item.body
-                  )}
-                </p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Services */}
+      {/* Visit & contact — Lahore */}
       <section className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
-        <div className="text-center">
-          <p className="eyebrow">How we serve you</p>
-          <h2 className="mt-3 font-display text-4xl text-ink md:text-5xl">
-            Our services
+        <div className="max-w-2xl">
+          <p className="eyebrow">Visit us</p>
+          <h2 className="mt-3 font-display text-4xl text-ink md:text-5xl text-balance">
+            Our Lahore{" "}
+            <em className="text-[#2563EB]">storefront</em>
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl font-body text-lg text-ink-soft">
-            From import orders to journal subscriptions — comprehensive support
-            for institutions and individual readers.
+          <p className="mt-4 font-body text-lg leading-relaxed text-ink-soft">
+            Allied Book Co. · Naqi Market, The Mall. Email, call, or ask for the
+            desk that matches your inquiry.
           </p>
         </div>
 
-        <div className="relative mt-14">
-          <div
-            className="absolute left-6 top-0 hidden h-full w-px bg-gradient-to-b from-[#2563EB] via-[#BFDBFE] to-transparent md:block"
-            aria-hidden
-          />
+        <figure className="relative mt-10 overflow-hidden border border-brass/40 shadow-ambient">
+          <div className="relative aspect-[16/10] w-full sm:aspect-[21/10]">
+            <Image
+              src={MAIN_STOREFRONT.src}
+              alt={MAIN_STOREFRONT.alt}
+              fill
+              priority
+              sizes="(max-width: 1152px) 100vw, 1152px"
+              className="object-cover object-center"
+            />
+          </div>
+          <figcaption className="border-t border-brass/30 bg-parchment-deep px-5 py-3 font-body text-sm text-ink-soft md:px-6">
+            Allied Book Co. · Naqi Market, 75-The Mall, Lahore
+          </figcaption>
+        </figure>
 
-          <ol className="space-y-6">
-            {SERVICES.map((service, index) => (
-              <li
-                key={service.title}
-                className="relative md:pl-16"
+        {SECONDARY_STOREFRONTS.length > 0 && (
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            {SECONDARY_STOREFRONTS.map((photo) => (
+              <div
+                key={photo.src}
+                className="relative aspect-[4/3] overflow-hidden border border-brass/40"
               >
-                <span
-                  className="absolute left-0 top-8 hidden h-12 w-12 items-center justify-center rounded-full border-2 border-[#2563EB] bg-white font-display text-lg text-[#2563EB] shadow-ambient md:flex"
-                  aria-hidden
-                >
-                  {index + 1}
-                </span>
-
-                <article className="map-panel overflow-hidden">
-                  <div className="border-b border-brass/30 bg-[#1E3A8A] px-6 py-3 md:hidden">
-                    <span className="font-label text-[0.62rem] uppercase tracking-[0.18em] text-[#93C5FD]">
-                      Service {String(index + 1).padStart(2, "0")}
-                    </span>
-                  </div>
-                  <div className="p-6 md:p-8">
-                    <h3 className="font-display text-2xl text-ink">
-                      {service.title}
-                    </h3>
-                    <p
-                      className={`mt-3 max-w-3xl font-body text-lg leading-relaxed text-ink-soft ${
-                        "italic" in service && service.italic ? "italic" : ""
-                      }`}
-                    >
-                      {service.body}
-                    </p>
-                  </div>
-                </article>
-              </li>
+                <Image
+                  src={photo.src}
+                  alt={photo.alt}
+                  fill
+                  sizes="(max-width: 640px) 100vw, 33vw"
+                  className="object-cover"
+                />
+              </div>
             ))}
-          </ol>
+          </div>
+        )}
+
+        <div className="map-panel mt-12 grid gap-10 p-8 md:grid-cols-2 md:gap-12 md:p-10 lg:gap-16">
+          <div>
+            <p className="eyebrow">Lahore Office</p>
+            <h3 className="mt-2 font-display text-3xl text-ink">Find us</h3>
+            <address className="mt-5 not-italic font-body text-lg leading-relaxed text-ink-soft">
+              Naqi Market, 75-The Mall
+              <br />
+              Lahore, Pakistan
+            </address>
+            <a
+              href="mailto:info@alliedbook.com"
+              className="mt-5 inline-block font-body text-lg text-[#2563EB] transition hover:underline"
+            >
+              info@alliedbook.com
+            </a>
+            <a
+              href={LAHORE_MAPS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 flex items-center gap-2.5 font-body text-base text-[#2563EB] transition hover:text-[#1E3A8A]"
+            >
+              <span className="relative inline-flex h-5 w-5 shrink-0 items-center justify-center" aria-hidden>
+                <span className="absolute inset-0 rounded-full bg-[#2563EB]/35 animate-pulse-ring motion-reduce:animate-none" />
+                <span className="absolute inset-0 scale-150 rounded-full bg-[#93C5FD]/25 animate-pulse-ring motion-reduce:animate-none [animation-delay:0.6s]" />
+                <svg
+                  viewBox="0 0 24 24"
+                  className="relative h-5 w-5 animate-float motion-reduce:animate-none"
+                  fill="currentColor"
+                >
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" />
+                </svg>
+              </span>
+              <span className="font-medium underline-offset-4 hover:underline">
+                Live location
+              </span>
+            </a>
+          </div>
+
+          <div className="md:border-l md:border-brass/30 md:pl-12">
+            <p className="eyebrow">Key contacts</p>
+            <ul className="mt-5 space-y-5">
+              {OFFICE_CONTACTS.map((person) => (
+                <li
+                  key={person.name}
+                  className="border-b border-brass/20 pb-5 last:border-0 last:pb-0"
+                >
+                  <p className="font-label text-[0.62rem] uppercase tracking-[0.16em] text-brass">
+                    {person.role}
+                  </p>
+                  <p className="mt-1 font-display text-xl text-ink">
+                    {person.name}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </section>
 
@@ -414,78 +342,71 @@ export default function AboutPage() {
             </p>
           </div>
 
-          <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {MAIN_TEAM.map((member) => {
-              const isLead = member.role === "Managing Director";
-              return (
-                <li
-                  key={`${member.name}-${member.role}`}
-                  className={isLead ? "sm:col-span-2 lg:col-span-3 xl:col-span-4" : undefined}
-                >
-                  <article
-                    className={`map-panel overflow-hidden transition hover:border-[#2563EB]/35 hover:shadow-lift ${
-                      isLead
-                        ? "flex flex-col border-[#2563EB]/30 bg-[#F8FAFF] sm:flex-row sm:items-stretch"
-                        : ""
-                    }`}
-                  >
-                    <div
-                      className={`relative shrink-0 bg-white ${
-                        isLead
-                          ? "aspect-[4/5] w-full sm:aspect-auto sm:w-48 md:w-56"
-                          : "aspect-[4/5] w-full"
-                      }`}
+          <div className="mt-12 space-y-12 md:space-y-14">
+            {MAIN_TEAM_ROWS.map((row, rowIndex) => (
+              <ul
+                key={rowIndex}
+                className={`mx-auto grid justify-items-center gap-8 ${
+                  row.length === 2
+                    ? "max-w-xl grid-cols-2 sm:gap-12"
+                    : "grid-cols-2 sm:grid-cols-4 sm:gap-6 md:gap-8"
+                }`}
+              >
+                {row.map((member) => {
+                  const isLead = row.length === 2;
+                  return (
+                    <li
+                      key={`${member.name}-${member.role}`}
+                      className="flex w-full max-w-[11rem] flex-col items-center text-center sm:max-w-[12rem]"
                     >
-                      {member.photo ? (
-                        <Image
-                          src={member.photo}
-                          alt={`${member.name}, ${member.role}`}
-                          fill
-                          className="object-cover object-top"
-                          sizes={
-                            isLead
-                              ? "(max-width: 640px) 100vw, 224px"
-                              : "(max-width: 640px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                          }
-                        />
-                      ) : (
-                        <span
-                          className="flex h-full w-full items-center justify-center font-display text-4xl text-[#1E3A8A] md:text-5xl"
-                          aria-hidden
-                        >
-                          {member.initials}
-                        </span>
-                      )}
-                    </div>
-                    <div
-                      className={`flex flex-1 flex-col justify-center ${
-                        isLead ? "p-5 md:p-8" : "p-4"
-                      }`}
-                    >
-                      <p className="font-label text-[0.55rem] uppercase tracking-[0.16em] text-brass">
+                      <div
+                        className={`relative overflow-hidden rounded-full bg-white ring-1 ring-[#E5E7EB] ${
+                          isLead
+                            ? "h-36 w-36 sm:h-40 sm:w-40 md:h-44 md:w-44"
+                            : "h-28 w-28 sm:h-32 sm:w-32 md:h-36 md:w-36"
+                        }`}
+                      >
+                        {member.photo ? (
+                          <Image
+                            src={member.photo}
+                            alt={`${member.name}, ${member.role}`}
+                            fill
+                            className="object-cover object-top"
+                            sizes={isLead ? "176px" : "144px"}
+                          />
+                        ) : (
+                          <span
+                            className="flex h-full w-full items-center justify-center font-display text-3xl text-[#1E3A8A]"
+                            aria-hidden
+                          >
+                            {member.initials}
+                          </span>
+                        )}
+                      </div>
+                      <p
+                        className={`mt-4 font-body font-medium leading-snug text-[#2563EB] ${
+                          isLead
+                            ? "text-sm md:text-base"
+                            : "text-[0.8125rem] md:text-sm"
+                        }`}
+                      >
                         {member.role}
                       </p>
                       <h3
-                        className={`mt-1 font-display text-ink ${
-                          isLead ? "text-2xl md:text-3xl" : "text-lg"
+                        className={`mt-2 font-display italic tracking-tight text-ink ${
+                          isLead
+                            ? "text-2xl md:text-3xl"
+                            : "text-lg md:text-xl"
                         }`}
                       >
                         {member.name}
                       </h3>
-                      {member.phone && member.phoneDisplay ? (
-                        <a
-                          href={telHref(member.phone)}
-                          className="mt-2 inline-block font-body text-sm text-ink-soft transition hover:text-[#2563EB]"
-                        >
-                          {member.phoneDisplay}
-                        </a>
-                      ) : null}
-                    </div>
-                  </article>
-                </li>
-              );
-            })}
-          </ul>
+                    </li>
+                  );
+                })}
+              </ul>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -668,8 +589,8 @@ export default function AboutPage() {
             Ready to explore our catalog?
           </h2>
           <p className="mx-auto mt-4 max-w-xl font-body text-lg text-white/80">
-            Browse 10,000+ titles in stock — or reach out to our team for
-            import orders, subscriptions, and institutional delivery.
+            Browse 10,000+ titles in stock — or see import, delivery, and
+            subscription options on our Services page.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-4">
             <Link
@@ -682,7 +603,7 @@ export default function AboutPage() {
               href="/contact"
               className="label-caps border border-white/50 px-7 py-3.5 text-[0.72rem] text-white transition hover:bg-white/10"
             >
-              Services
+              Our services
             </Link>
           </div>
         </div>

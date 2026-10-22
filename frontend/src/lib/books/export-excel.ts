@@ -1,8 +1,18 @@
-import * as XLSX from "xlsx";
 import type { Book } from "@/types";
 import { listBooks, type ListBooksOpts } from "@/lib/books/supabase-books";
 
 const BATCH_SIZE = 48;
+
+const COLUMNS = [
+  { key: "code", header: "code", width: 14 },
+  { key: "author", header: "author", width: 28 },
+  { key: "title", header: "title", width: 50 },
+  { key: "isbn", header: "isbn", width: 16 },
+  { key: "publisher", header: "publisher", width: 28 },
+  { key: "bind", header: "bind", width: 10 },
+  { key: "year", header: "year", width: 8 },
+  { key: "price", header: "price", width: 12 },
+] as const;
 
 /** Fetch every book matching the current shop filters (all pages). */
 export async function fetchAllMatchingBooks(
@@ -49,32 +59,52 @@ export function booksToExcelRows(books: Book[]) {
     code: book.code ?? "",
     author: book.author,
     title: book.title,
+    isbn: book.isbn ?? "",
+    publisher: book.publisher ?? "",
     bind: book.bind ?? "",
     year: yearValue(book),
     price: priceValue(book),
   }));
 }
 
-export function downloadBooksExcel(
+export async function downloadBooksExcel(
   books: Book[],
   filename = "allied-books"
-): void {
+): Promise<void> {
+  // Lazy-load ExcelJS so the shop page chunk stays small.
+  const ExcelJS = (await import("exceljs")).default;
   const rows = booksToExcelRows(books);
-  const worksheet = XLSX.utils.json_to_sheet(rows);
-  worksheet["!cols"] = [
-    { wch: 14 },
-    { wch: 28 },
-    { wch: 50 },
-    { wch: 10 },
-    { wch: 8 },
-    { wch: 12 },
-  ];
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Books");
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Books");
+
+  worksheet.columns = COLUMNS.map((col) => ({
+    key: col.key,
+    width: col.width,
+  }));
+
+  const headerRow = worksheet.addRow(COLUMNS.map((col) => col.header));
+  headerRow.eachCell((cell) => {
+    cell.font = { bold: true, size: 12 };
+  });
+
+  for (const row of rows) {
+    worksheet.addRow(row);
+  }
+
   const safeName = filename
     .replace(/[^\w\-]+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 80);
-  XLSX.writeFile(workbook, `${safeName || "allied-books"}.xlsx`);
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `${safeName || "allied-books"}.xlsx`;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }

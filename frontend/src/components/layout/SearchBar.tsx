@@ -89,7 +89,7 @@ export function SearchBar({ transparent, className }: Props) {
               setOpen(true);
             }}
             onFocus={() => setOpen(true)}
-            placeholder="Search titles or authors…"
+            placeholder="Search titles, authors, or publishers…"
             className={cn(
               "w-full bg-transparent font-body text-sm outline-none",
               transparent

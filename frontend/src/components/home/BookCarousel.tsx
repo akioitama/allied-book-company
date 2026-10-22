@@ -16,7 +16,7 @@ type Props = {
   className?: string;
 };
 
-const CARD_STEP = 216; // approximate card width + gap
+const CARD_STEP = 176; // approximate card width + gap
 
 export function BookCarousel({
   id,

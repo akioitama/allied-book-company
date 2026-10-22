@@ -11,14 +11,15 @@ type Props = {
   className?: string;
 };
 
-function formatPublishDate(date: string | null | undefined) {
+function formatPublishYear(
+  year: number | null | undefined,
+  date: string | null | undefined
+) {
+  if (year != null && Number.isFinite(year)) return String(year);
   if (!date) return null;
   const d = new Date(date);
   if (Number.isNaN(d.getTime())) return null;
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    year: "numeric",
-  }).format(d);
+  return String(d.getFullYear());
 }
 
 export function ShopResultRow({ book, className }: Props) {
@@ -30,11 +31,8 @@ export function ShopResultRow({ book, className }: Props) {
     cover_image_url: book.cover_image_url,
     isbn: book.isbn,
   });
-  const published = formatPublishDate(book.published_at);
-  const metaParts = [
-    book.category_name,
-    published,
-  ].filter(Boolean);
+  const published = formatPublishYear(book.publish_year, book.published_at);
+  const metaParts = [book.category_name, published].filter(Boolean);
 
   return (
     <article
@@ -70,12 +68,12 @@ export function ShopResultRow({ book, className }: Props) {
             {book.title}
           </Link>
         </h3>
+        <p className="mt-2 font-body text-base text-[#374151]">{book.author}</p>
         {metaParts.length > 0 && (
-          <p className="mt-2 font-body text-sm text-[#6B7280]">
+          <p className="mt-1 font-body text-sm text-[#6B7280]">
             {metaParts.join(" | ")}
           </p>
         )}
-        <p className="mt-1 font-body text-base text-[#374151]">{book.author}</p>
         {book.stock <= 0 && (
           <p className="mt-2 font-label text-[0.65rem] uppercase tracking-[0.12em] text-oxblood">
             Out of stock

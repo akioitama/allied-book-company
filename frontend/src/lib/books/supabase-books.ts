@@ -2,6 +2,7 @@ import type { Book } from "@/types";
 import { createClient, createPublicClient } from "@/lib/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { upgradeCoverUrl } from "@/lib/books/covers";
+import { SITEWIDE_DISCOUNT_PERCENT } from "@/lib/books/pricing";
 
 export type BookRow = {
   id: string;
@@ -185,6 +186,8 @@ function clientOrThrow(client?: SupabaseClient | null) {
 export type ListBooksOpts = {
   q?: string;
   author?: string;
+  /** Publisher / brand (matches metadata.publisher_name). */
+  brand?: string;
   /** Category slug (matches DB categories.slug). */
   category?: string;
   maxPriceCents?: number;
@@ -293,11 +296,24 @@ export async function listBooks(
   if (opts.q?.trim()) {
     const q = opts.q.trim().replace(/%/g, "");
     query = query.or(
-      `title.ilike.%${q}%,author.ilike.%${q}%,isbn.ilike.%${q}%`
+      [
+        `title.ilike.%${q}%`,
+        `author.ilike.%${q}%`,
+        `isbn.ilike.%${q}%`,
+        `metadata->>publisher_name.ilike.%${q}%`,
+        `metadata->>publisher.ilike.%${q}%`,
+      ].join(",")
     );
   }
   if (opts.author?.trim()) {
     query = query.ilike("author", `%${opts.author.trim()}%`);
+  }
+  if (opts.brand?.trim()) {
+    const brand = opts.brand.trim().replace(/%/g, "");
+    // Publisher lives in metadata from the stock import (publisher_name).
+    query = query.or(
+      `metadata->>publisher_name.ilike.%${brand}%,metadata->>publisher.ilike.%${brand}%`
+    );
   }
   if (opts.maxPriceCents != null) {
     query = query.lte("price_cents", opts.maxPriceCents);
@@ -305,7 +321,11 @@ export async function listBooks(
   if (opts.featured) query = query.eq("is_featured", true);
   if (opts.isNew) query = query.eq("is_new", true);
   if (opts.bestseller) query = query.eq("is_bestseller", true);
-  if (opts.onSale) query = query.gt("discount_percent", 0);
+  // Sitewide promo counts as on sale for every title; only hit the DB
+  // discount column when there is no storefront-wide percent off.
+  if (opts.onSale && SITEWIDE_DISCOUNT_PERCENT <= 0) {
+    query = query.gt("discount_percent", 0);
+  }
   if (opts.inStock) query = query.gt("stock", 0);
   if (opts.publishYearMin != null && opts.publishAfter) {
     query = query.or(
@@ -319,6 +339,12 @@ export async function listBooks(
     query = query
       .order("is_featured", { ascending: false })
       .order("is_bestseller", { ascending: false })
+      .order("title", { ascending: true });
+  } else if (orderBy === "publish_year") {
+    // Catalog dates live on publish_year (bulk imports share created_at).
+    query = query
+      .order("publish_year", { ascending, nullsFirst: false })
+      .order("published_at", { ascending, nullsFirst: false })
       .order("title", { ascending: true });
   } else {
     query = query.order(orderBy, { ascending, nullsFirst: false });
@@ -362,31 +388,25 @@ export async function getBookBySlug(
 
 export async function getRelatedBooks(
   book: Book,
-  limit = 3,
+  limit = 6,
   client?: SupabaseClient | null
 ): Promise<Book[]> {
   const supabase = clientOrThrow(client);
   const { byId } = await categoryMaps(client);
   const titleKey = normalizeTitleKey(book.title);
-  const finalize = (rows: BookRow[]) =>
-    dedupeBooksByTitle(rows.map((r) => mapBookRow(r, byId)))
-      .filter((b) => normalizeTitleKey(b.title) !== titleKey)
-      .slice(0, limit);
 
-  if (book.author && book.author !== "N/A") {
-    const { data } = await supabase
-      .from("books")
-      .select(LIST_COLUMNS)
-      .ilike("author", book.author)
-      .neq("id", book.id)
-      .limit(limit * 4);
-    if (data?.length) {
-      const related = finalize(data as unknown as BookRow[]);
-      if (related.length) return related;
-    }
-  }
-  // Fall back to shelf-mates before "newest anywhere" so suggestions stay
-  // relevant to the book being viewed.
+  const finalize = (rows: BookRow[], excludeIds: Set<string>) =>
+    dedupeBooksByTitle(rows.map((r) => mapBookRow(r, byId))).filter(
+      (b) =>
+        normalizeTitleKey(b.title) !== titleKey &&
+        b.id !== book.id &&
+        !excludeIds.has(b.id)
+    );
+
+  const related: Book[] = [];
+  const seen = new Set<string>([book.id]);
+
+  // 1) Prefer same-subject (category) titles.
   if (book.category_id) {
     const { data } = await supabase
       .from("books")
@@ -394,18 +414,47 @@ export async function getRelatedBooks(
       .eq("category_id", book.category_id)
       .neq("id", book.id)
       .limit(limit * 4);
-    if (data?.length) {
-      const related = finalize(data as unknown as BookRow[]);
-      if (related.length) return related;
+    for (const b of finalize((data as unknown as BookRow[]) ?? [], seen)) {
+      related.push(b);
+      seen.add(b.id);
+      if (related.length >= limit) return related;
     }
   }
-  const { data } = await supabase
-    .from("books")
-    .select(LIST_COLUMNS)
-    .neq("id", book.id)
-    .order("created_at", { ascending: false })
-    .limit(limit * 4);
-  return finalize((data as unknown as BookRow[]) ?? []);
+
+  // 2) Fill remaining slots (or all, if no subject) with same-author books.
+  if (related.length < limit && book.author && book.author !== "N/A") {
+    const { data } = await supabase
+      .from("books")
+      .select(LIST_COLUMNS)
+      .ilike("author", book.author)
+      .neq("id", book.id)
+      .limit(limit * 4);
+    for (const b of finalize((data as unknown as BookRow[]) ?? [], seen)) {
+      related.push(b);
+      seen.add(b.id);
+      if (related.length >= limit) break;
+    }
+  }
+
+  // 3) Still short? Fill with same-publisher books.
+  if (related.length < limit && book.publisher?.trim()) {
+    const publisher = book.publisher.trim().replace(/%/g, "");
+    const { data } = await supabase
+      .from("books")
+      .select(LIST_COLUMNS)
+      .or(
+        `metadata->>publisher_name.ilike.%${publisher}%,metadata->>publisher.ilike.%${publisher}%`
+      )
+      .neq("id", book.id)
+      .limit(limit * 4);
+    for (const b of finalize((data as unknown as BookRow[]) ?? [], seen)) {
+      related.push(b);
+      seen.add(b.id);
+      if (related.length >= limit) break;
+    }
+  }
+
+  return related;
 }
 
 /** Homepage sections — falls back when flags are empty on imported stock. */

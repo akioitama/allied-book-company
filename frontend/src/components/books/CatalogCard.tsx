@@ -25,7 +25,7 @@ export function CatalogCard({ book, className }: Props) {
   });
 
   return (
-    <article className={cn("flex w-[180px] shrink-0 flex-col sm:w-[200px]", className)}>
+    <article className={cn("flex w-[148px] shrink-0 flex-col sm:w-[160px]", className)}>
       <Link
         href={`/shop/${book.slug}`}
         className="relative block aspect-[2/3] overflow-hidden border border-brass/50 bg-parchment-deep"
@@ -35,7 +35,7 @@ export function CatalogCard({ book, className }: Props) {
           fallbackSrcs={fallbacks}
           alt={`Cover of ${book.title}`}
           title={book.title}
-          sizes="200px"
+          sizes="160px"
           imageClassName="transition duration-500 hover:scale-[1.03]"
         />
         {discount > 0 && (
@@ -55,7 +55,7 @@ export function CatalogCard({ book, className }: Props) {
           {book.title}
         </Link>
       </h3>
-      <p className="mt-1 font-body text-sm text-ink-soft">
+      <p className="mt-1 line-clamp-2 min-h-[2.6em] font-body text-sm leading-snug text-ink-soft">
         By: <span className="text-oxblood">{book.author}</span>
       </p>
 

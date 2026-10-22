@@ -2,8 +2,8 @@ import { cache, type ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddToCartButton } from "@/components/books/AddToCartButton";
-import { BookCard } from "@/components/books/BookCard";
 import { BookCover } from "@/components/books/BookCover";
+import { CatalogCard } from "@/components/books/CatalogCard";
 import { formatPrice } from "@/lib/utils";
 import { coverSourcesForBook } from "@/lib/books/covers";
 import { resolveForeignPrice } from "@/lib/books/foreign-price";
@@ -49,11 +49,11 @@ function formatForeignPrice(amount: number, currency: string): string {
 
 function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="grid grid-cols-[8.5rem_1fr] gap-2 border-b border-brass/20 py-1.5 last:border-0 sm:grid-cols-[10rem_1fr]">
-      <dt className="font-label text-xs uppercase tracking-[0.14em] text-ink-soft sm:text-sm">
+    <div className="grid grid-cols-[6.75rem_1fr] items-baseline gap-x-3 border-b border-brass/20 py-1.5 last:border-0 sm:grid-cols-[7.5rem_1fr]">
+      <dt className="font-label text-xs font-bold uppercase tracking-[0.14em] text-ink sm:text-sm">
         {label}
       </dt>
-      <dd className="font-body text-sm text-ink sm:text-base">{value}</dd>
+      <dd className="min-w-0 font-body text-sm text-ink sm:text-base">{value}</dd>
     </div>
   );
 }
@@ -63,7 +63,7 @@ export default async function BookDetailPage({ params }: Props) {
   if (!book) notFound();
 
   const categoryName = book.category_name ?? null;
-  const related = await getRelatedBooks(book, 3);
+  const related = await getRelatedBooks(book, 6);
   const { cents: salePrice, discountPercent: discount } = resolveOurPrice(
     book.price_cents,
     book.discount_percent
@@ -101,8 +101,8 @@ export default async function BookDetailPage({ params }: Props) {
       </p>
 
       <div className="mx-auto max-w-4xl">
-        <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:gap-12">
-          <div className="mx-auto w-[240px] shrink-0 sm:mx-0 md:w-[280px]">
+        <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:gap-10 md:gap-12">
+          <div className="mx-auto w-[180px] shrink-0 self-start sm:mx-0 md:w-[200px]">
             <div className="map-panel relative aspect-[3/4] overflow-hidden">
               <BookCover
                 src={primaryCover}
@@ -110,13 +110,13 @@ export default async function BookDetailPage({ params }: Props) {
                 alt={`Cover of ${book.title}`}
                 title={book.title}
                 priority
-                sizes="280px"
+                sizes="200px"
               />
             </div>
           </div>
 
-          <div className="min-w-0 flex-1 pt-1">
-            <h1 className="font-display text-2xl leading-tight text-ink sm:text-3xl md:text-[2rem]">
+          <div className="min-w-0 flex-1 self-start">
+            <h1 className="font-display text-2xl leading-none text-ink sm:text-3xl md:text-[2rem]">
               {book.title}
             </h1>
 
@@ -137,33 +137,52 @@ export default async function BookDetailPage({ params }: Props) {
                 }
               />
               <DetailRow label="Binding" value={book.bind ?? "—"} />
-              <DetailRow label="Publisher" value={book.publisher ?? "—"} />
+              <DetailRow
+                label="Publisher"
+                value={
+                  book.publisher ? (
+                    <Link
+                      href={`/shop?brand=${encodeURIComponent(book.publisher)}`}
+                      className="text-oxblood hover:underline"
+                    >
+                      {book.publisher}
+                    </Link>
+                  ) : (
+                    "—"
+                  )
+                }
+              />
               <DetailRow label="Year" value={displayYear(book)} />
               <DetailRow label="ISBN" value={book.isbn ?? "—"} />
               <DetailRow
                 label="Price"
                 value={
-                  <div className="flex flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-5 sm:gap-y-1">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
+                      <span>
+                        <span className="mr-1.5 font-label text-xs font-bold uppercase tracking-[0.12em] text-ink">
+                          Foreign
+                        </span>
+                        <span className="font-display text-lg">
+                          {foreign
+                            ? formatForeignPrice(
+                                foreign.amount,
+                                foreign.currency
+                              )
+                            : "—"}
+                        </span>
+                      </span>
+                      <span>
+                        <span className="mr-1.5 font-label text-xs font-bold uppercase tracking-[0.12em] text-ink">
+                          PKR
+                        </span>
+                        <span className="font-display text-lg">
+                          {formatPrice(book.price_cents)}
+                        </span>
+                      </span>
+                    </div>
                     <span>
-                      <span className="mr-1.5 font-label text-xs uppercase tracking-[0.12em] text-ink-soft">
-                        Foreign
-                      </span>
-                      <span className="font-display text-lg">
-                        {foreign
-                          ? formatForeignPrice(foreign.amount, foreign.currency)
-                          : "—"}
-                      </span>
-                    </span>
-                    <span>
-                      <span className="mr-1.5 font-label text-xs uppercase tracking-[0.12em] text-ink-soft">
-                        PKR
-                      </span>
-                      <span className="font-display text-lg">
-                        {formatPrice(book.price_cents)}
-                      </span>
-                    </span>
-                    <span>
-                      <span className="mr-1.5 font-label text-xs uppercase tracking-[0.12em] text-ink-soft">
+                      <span className="mr-1.5 font-label text-xs font-bold uppercase tracking-[0.12em] text-ink">
                         Your price
                       </span>
                       <span className="font-display text-lg text-oxblood">
@@ -228,9 +247,9 @@ export default async function BookDetailPage({ params }: Props) {
         <section className="mt-20">
           <p className="eyebrow mb-3">Related titles</p>
           <h2 className="font-display text-3xl text-ink">More from this shelf</h2>
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-8 flex flex-wrap gap-5 sm:gap-6">
             {related.map((b) => (
-              <BookCard key={b.id} book={b} showAdd={false} />
+              <CatalogCard key={b.id} book={b} />
             ))}
           </div>
         </section>
