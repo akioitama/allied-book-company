@@ -1,7 +1,12 @@
 import { formatPrice } from "@/lib/utils";
 
-/** Testing inbox — change back to info@alliedbook.com when done. */
 export const ORDER_NOTIFY_EMAIL = "info@alliedbook.com";
+
+/** Canonical live site — FormSubmit uses this when Origin/Referer is missing or wrong. */
+const SITE_URL =
+  (typeof process !== "undefined" &&
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "")) ||
+  "https://www.alliedbook.com";
 
 export type OrderNotifyPayload = {
   items: Array<{
@@ -88,6 +93,17 @@ export async function sendOrderEmailFromBrowser(
   const message = buildOrderText(body);
 
   try {
+    // FormSubmit ties activation to the submitting domain. Prefer the real
+    // browser location; fall back to the public site URL (never invent localhost).
+    const pageUrl =
+      typeof window !== "undefined" && window.location?.href
+        ? window.location.href
+        : `${SITE_URL}/checkout`;
+    const origin =
+      typeof window !== "undefined" && window.location?.origin
+        ? window.location.origin
+        : SITE_URL;
+
     const res = await fetch(
       `https://formsubmit.co/ajax/${encodeURIComponent(ORDER_NOTIFY_EMAIL)}`,
       {
@@ -96,11 +112,16 @@ export async function sendOrderEmailFromBrowser(
           "Content-Type": "application/json",
           Accept: "application/json",
         },
+        // Help FormSubmit see the live domain (stricter referrer policies hide path).
+        referrerPolicy: "strict-origin-when-cross-origin",
         body: JSON.stringify({
           _subject: subject,
           _captcha: "false",
           _template: "table",
           _replyto: body.shipping.email,
+          // FormSubmit reads _url for the domain shown in activation emails.
+          _url: pageUrl,
+          website: origin,
           name: body.shipping.name,
           email: body.shipping.email,
           phone: body.shipping.phone?.trim() || "—",

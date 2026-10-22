@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import type { Book } from "@/types";
 import { resolveOurPrice } from "@/lib/books/pricing";
 import { useCartStore } from "@/lib/store/cart";
@@ -125,15 +124,6 @@ export function AddToCartButton({
               ? `Add more (${inCart.quantity} in cart)`
               : "Add to cart"}
       </button>
-
-      {justAdded && !compact && (
-        <Link
-          href="/cart"
-          className="label-caps border border-brass/50 px-4 py-3 text-[0.7rem] text-ink transition hover:border-oxblood hover:text-oxblood"
-        >
-          View cart
-        </Link>
-      )}
     </div>
   );
 }
