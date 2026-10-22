@@ -8,8 +8,8 @@ export default function CheckoutSuccessPage() {
       <p className="eyebrow mb-3">Thank you</p>
       <h1 className="font-display text-4xl text-ink">Order confirmed</h1>
       <p className="mt-4 font-body text-lg leading-relaxed text-ink-soft">
-        Your order has been received. We will contact you if we need any
-        further details about delivery.
+        Your order has been placed. Our team will contact you for further
+        assistance.
       </p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <Link

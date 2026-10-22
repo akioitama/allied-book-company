@@ -4,15 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, cn } from "@/lib/utils";
+import { deliveryFeeCents, orderTotalCents } from "@/lib/shipping";
+import { sendOrderEmailFromBrowser } from "@/lib/orders/notify";
 import { useCartStore } from "@/lib/store/cart";
-import { API_BASE } from "@/lib/utils";
-import { cn } from "@/lib/utils";
 
 const steps = [
   { id: 1, label: "Shipping" },
   { id: 2, label: "Review order" },
-  { id: 3, label: "Payment" },
+  { id: 3, label: "Place order" },
 ];
 
 export default function CheckoutPage() {
@@ -29,9 +29,17 @@ export default function CheckoutPage() {
     city: "",
     region: "",
     postal: "",
-    country: "United States",
+    country: "Pakistan",
     email: "",
+    phone: "",
   });
+  const [paymentMethod, setPaymentMethod] = useState<
+    "cash_on_delivery" | "upfront"
+  >("cash_on_delivery");
+
+  const subtotal = totalCents();
+  const delivery = deliveryFeeCents(subtotal);
+  const grandTotal = orderTotalCents(subtotal);
 
   if (items.length === 0) {
     return (
@@ -46,45 +54,35 @@ export default function CheckoutPage() {
     );
   }
 
-  async function handlePay() {
+  async function handlePlaceOrder() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/cart/checkout-session`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: items.map((i) => ({
-            book_id: i.bookId,
-            quantity: i.quantity,
-          })),
-          shipping_address: form,
-          success_url: `${window.location.origin}/checkout/success`,
-          cancel_url: `${window.location.origin}/checkout`,
-        }),
+      const result = await sendOrderEmailFromBrowser({
+        items: items.map((i) => ({
+          title: i.title,
+          author: i.author,
+          quantity: i.quantity,
+          price_cents: i.price_cents,
+        })),
+        shipping: form,
+        payment_method: paymentMethod,
+        subtotal_cents: subtotal,
+        delivery_cents: delivery,
+        total_cents: grandTotal,
       });
 
-      if (res.ok) {
-        const data = (await res.json()) as { url?: string; demo_order_id?: string };
-        if (data.url) {
-          window.location.href = data.url;
-          return;
-        }
-        if (data.demo_order_id) {
-          clear();
-          router.push("/checkout/success");
-          return;
-        }
+      if (!result.ok) {
+        setError(result.error);
+        return;
       }
 
       clear();
       router.push("/checkout/success");
     } catch {
       setError(
-        "Could not reach the payment service. Showing a demo order confirmation."
+        "Could not send your order. Please check your connection and try again."
       );
-      clear();
-      router.push("/checkout/success");
     } finally {
       setLoading(false);
     }
@@ -127,6 +125,7 @@ export default function CheckoutPage() {
             [
               ["name", "Full name", "text"],
               ["email", "Email", "email"],
+              ["phone", "Phone", "tel"],
               ["line1", "Address", "text"],
               ["city", "City", "text"],
               ["region", "State / Region", "text"],
@@ -134,10 +133,17 @@ export default function CheckoutPage() {
               ["country", "Country", "text"],
             ] as const
           ).map(([key, label, type]) => (
-            <label key={key} className={key === "line1" || key === "email" || key === "name" ? "sm:col-span-2" : ""}>
+            <label
+              key={key}
+              className={
+                key === "line1" || key === "email" || key === "name"
+                  ? "sm:col-span-2"
+                  : ""
+              }
+            >
               <span className="eyebrow">{label}</span>
               <input
-                required
+                required={key !== "phone"}
                 type={type}
                 value={form[key]}
                 onChange={(e) => setForm({ ...form, [key]: e.target.value })}
@@ -158,7 +164,10 @@ export default function CheckoutPage() {
         <div className="map-panel mt-8 p-6">
           <ul className="space-y-3">
             {items.map((item) => (
-              <li key={item.bookId} className="flex justify-between gap-4 border-b border-brass/25 pb-3">
+              <li
+                key={item.bookId}
+                className="flex justify-between gap-4 border-b border-brass/25 pb-3"
+              >
                 <span className="font-body">
                   {item.title} × {item.quantity}
                 </span>
@@ -168,10 +177,25 @@ export default function CheckoutPage() {
               </li>
             ))}
           </ul>
-          <p className="mt-6 flex justify-between font-display text-2xl">
+          <div className="mt-6 space-y-2 font-body text-ink-soft">
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span>{formatPrice(subtotal)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Delivery</span>
+              <span>{delivery > 0 ? formatPrice(delivery) : "Free"}</span>
+            </div>
+          </div>
+          <p className="mt-4 flex justify-between font-display text-2xl text-ink">
             <span>Total</span>
-            <span>{formatPrice(totalCents())}</span>
+            <span>{formatPrice(grandTotal)}</span>
           </p>
+          {delivery > 0 ? (
+            <p className="mt-2 font-body text-sm text-ink-soft">
+              Rs 200 delivery applies to orders under Rs 8,000.
+            </p>
+          ) : null}
           <div className="mt-6 flex flex-wrap gap-3">
             <button
               type="button"
@@ -193,9 +217,61 @@ export default function CheckoutPage() {
 
       {step === 3 && (
         <div className="map-panel mt-8 p-6">
-          <p className="font-body text-lg text-ink-soft leading-relaxed">
-            Payment is processed securely via Stripe Checkout when the backend is
-            configured. In demo mode, we create a local order confirmation.
+          <p className="eyebrow">Payment method</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <label
+              className={cn(
+                "flex cursor-pointer items-start gap-3 border px-4 py-3 transition",
+                paymentMethod === "cash_on_delivery"
+                  ? "border-oxblood bg-oxblood/5"
+                  : "border-brass/40 hover:border-oxblood/50"
+              )}
+            >
+              <input
+                type="radio"
+                name="payment"
+                className="mt-1"
+                checked={paymentMethod === "cash_on_delivery"}
+                onChange={() => setPaymentMethod("cash_on_delivery")}
+              />
+              <span>
+                <span className="block font-display text-lg text-ink">
+                  Cash on delivery
+                </span>
+                <span className="mt-0.5 block font-body text-sm text-ink-soft">
+                  Pay when your order arrives
+                </span>
+              </span>
+            </label>
+            <label
+              className={cn(
+                "flex cursor-pointer items-start gap-3 border px-4 py-3 transition",
+                paymentMethod === "upfront"
+                  ? "border-oxblood bg-oxblood/5"
+                  : "border-brass/40 hover:border-oxblood/50"
+              )}
+            >
+              <input
+                type="radio"
+                name="payment"
+                className="mt-1"
+                checked={paymentMethod === "upfront"}
+                onChange={() => setPaymentMethod("upfront")}
+              />
+              <span>
+                <span className="block font-display text-lg text-ink">
+                  Upfront
+                </span>
+                <span className="mt-0.5 block font-body text-sm text-ink-soft">
+                  Pay before delivery (our team will share details)
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <p className="mt-6 font-body text-lg leading-relaxed text-ink-soft">
+            Your order will be placed and our team will contact you for further
+            assistance.
           </p>
           {error && (
             <p className="mt-4 border border-oxblood/40 bg-oxblood/5 px-3 py-2 font-body text-sm text-ink">
@@ -213,10 +289,10 @@ export default function CheckoutPage() {
             <button
               type="button"
               disabled={loading}
-              onClick={handlePay}
+              onClick={handlePlaceOrder}
               className="label-caps border border-oxblood bg-oxblood px-5 py-3 text-[0.7rem] text-parchment disabled:opacity-60"
             >
-              {loading ? "Preparing…" : "Pay now"}
+              {loading ? "Placing order…" : "Place order"}
             </button>
           </div>
           <p className="mt-4">

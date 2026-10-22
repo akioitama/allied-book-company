@@ -5,6 +5,7 @@ import { BookCover } from "@/components/books/BookCover";
 import { coverSourcesForBook } from "@/lib/books/covers";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatPrice } from "@/lib/utils";
+import { deliveryFeeCents, orderTotalCents } from "@/lib/shipping";
 import { useCartStore } from "@/lib/store/cart";
 
 export default function CartPage() {
@@ -13,6 +14,9 @@ export default function CartPage() {
   const removeItem = useCartStore((s) => s.removeItem);
   const totalCents = useCartStore((s) => s.totalCents);
   const count = items.reduce((n, i) => n + i.quantity, 0);
+  const subtotal = totalCents();
+  const delivery = deliveryFeeCents(subtotal);
+  const grandTotal = orderTotalCents(subtotal);
 
   if (items.length === 0) {
     return (
@@ -117,15 +121,23 @@ export default function CartPage() {
 
         <aside className="map-panel h-fit p-6">
           <p className="eyebrow">Order summary</p>
-          <div className="mt-4 flex justify-between font-body text-ink-soft">
-            <span>Subtotal</span>
-            <span>{formatPrice(totalCents())}</span>
+          <div className="mt-4 space-y-2 font-body text-ink-soft">
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span>{formatPrice(subtotal)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Delivery</span>
+              <span>{delivery > 0 ? formatPrice(delivery) : "Free"}</span>
+            </div>
           </div>
           <p className="mt-3 font-display text-4xl text-ink">
-            {formatPrice(totalCents())}
+            {formatPrice(grandTotal)}
           </p>
           <p className="mt-2 font-body text-sm text-ink-soft">
-            Shipping calculated at checkout.
+            {delivery > 0
+              ? "Rs 200 delivery on orders under Rs 8,000."
+              : "Free delivery on orders of Rs 8,000 or more."}
           </p>
           <Link
             href="/checkout"

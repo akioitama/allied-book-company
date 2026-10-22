@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Literata, Outfit } from "next/font/google";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { FloatingSocial } from "@/components/layout/FloatingSocial";
 import { MainShell } from "@/components/layout/MainShell";
 import { InkTrail } from "@/components/ui/InkTrail";
 import "./globals.css";
@@ -32,6 +33,11 @@ export const metadata: Metadata = {
   },
   description:
     "An online bookstore with a blue atlas identity — browse shelves, search titles, and chart your next read.",
+  icons: {
+    icon: [{ url: "/logo.png", type: "image/png" }],
+    apple: [{ url: "/logo.png", type: "image/png" }],
+    shortcut: "/logo.png",
+  },
 };
 
 export default function RootLayout({
@@ -48,6 +54,7 @@ export default function RootLayout({
         <Header />
         <MainShell>{children}</MainShell>
         <Footer />
+        <FloatingSocial />
       </body>
     </html>
   );
