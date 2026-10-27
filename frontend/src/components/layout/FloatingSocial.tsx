@@ -1,5 +1,5 @@
 const WHATSAPP_URL = "https://wa.me/923375917645";
-const INSTAGRAM_URL = "https://www.instagram.com/allied1984";
+const INSTAGRAM_URL = "https://www.instagram.com/alliedbookco1";
 
 export function FloatingSocial() {
   return (
