@@ -457,25 +457,112 @@ export async function getRelatedBooks(
   return related;
 }
 
+/** Pearson Edexcel IGCSE titles featured on the home “Books for school” shelf. */
+export const SCHOOL_BOOK_ISBNS = [
+  "9781292368450",
+  "9781292368467",
+  "9781292764375",
+  "9781292496993",
+  "9781292764368",
+  "9781292496719",
+  "9781292368658",
+  "9781292496900",
+  "9781292370101",
+  "9781292496726",
+  "9781292496641",
+  "9781292496665",
+  "9781292394923",
+  "9781292394916",
+  "9781292394909",
+] as const;
+
+/** Fetch books by ISBN list, preserving the requested order. */
+export async function getBooksByIsbns(
+  isbns: readonly string[],
+  client?: SupabaseClient | null
+): Promise<Book[]> {
+  if (!isbns.length) return [];
+  const supabase = clientOrThrow(client);
+  const { byId } = await categoryMaps(client);
+  const list = [...isbns];
+
+  const { data, error } = await supabase
+    .from("books")
+    .select(LIST_COLUMNS)
+    .or(`isbn.in.(${list.join(",")}),isbn13.in.(${list.join(",")})`);
+
+  if (error) {
+    console.error("getBooksByIsbns", error.message);
+    throw new Error(error.message);
+  }
+
+  const books = ((data ?? []) as unknown as BookRow[]).map((row) =>
+    mapBookRow(row, byId)
+  );
+  const byIsbn = new Map<string, Book>();
+  for (const book of books) {
+    const key = book.isbn?.replace(/[^0-9Xx]/g, "") ?? "";
+    if (key && !byIsbn.has(key)) byIsbn.set(key, book);
+  }
+
+  return list
+    .map((isbn) => byIsbn.get(isbn))
+    .filter((book): book is Book => Boolean(book));
+}
+
+function isSchoolIsbn(isbn?: string | null) {
+  if (!isbn) return false;
+  const key = isbn.replace(/[^0-9Xx]/g, "");
+  return (SCHOOL_BOOK_ISBNS as readonly string[]).includes(key);
+}
+
+/** A real stored cover — not an empty slot or a provider stub. */
+function hasProperCover(url?: string | null) {
+  if (!url) return false;
+  return url.includes("/book-covers/") && url.includes("/storage/");
+}
+
+async function listRecentWithCovers(
+  supabase: SupabaseClient,
+  limit: number
+): Promise<Book[]> {
+  const { byId } = await categoryMaps(supabase);
+  const { data, error } = await supabase
+    .from("books")
+    .select(LIST_COLUMNS)
+    .not("cover_image_url", "is", null)
+    .ilike("cover_image_url", "%/book-covers/%")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("listRecentWithCovers", error.message);
+    throw new Error(error.message);
+  }
+
+  return dedupeBooksByTitle(
+    ((data ?? []) as unknown as BookRow[]).map((row) => mapBookRow(row, byId))
+  ).filter((book) => {
+    const title = normalizeTitleKey(book.title);
+    const hidden =
+      title.startsWith("cmake best practices") ||
+      title.startsWith("functional foods and their implications for health promotion");
+    return hasProperCover(book.cover_image_url) && !isSchoolIsbn(book.isbn) && !hidden;
+  });
+}
+
 /** Homepage sections — falls back when flags are empty on imported stock. */
 export async function getHomeSections(client?: SupabaseClient | null) {
   const supabase = clientOrThrow(client);
 
-  // Home only renders New Arrivals — keep the query small to cut origin + cover traffic.
-  const noCount = { pageSize: 10, withCount: false } as const;
-  const [flaggedNew, newest] = await Promise.all([
-    listBooks(
-      { ...noCount, isNew: true, orderBy: "created_at", ascending: false },
-      supabase
-    ),
-    listBooks(
-      { ...noCount, orderBy: "created_at", ascending: false },
-      supabase
-    ),
+  const [recentCovered, schoolBooks] = await Promise.all([
+    listRecentWithCovers(supabase, 40),
+    getBooksByIsbns(SCHOOL_BOOK_ISBNS, supabase),
   ]);
 
   return {
-    newArrivals: flaggedNew.books.length ? flaggedNew.books : newest.books,
+    newArrivals: recentCovered.slice(0, 10),
+    schoolBooks,
     bestsellers: [] as Book[],
     onSale: [] as Book[],
     catalogPreview: [] as Book[],

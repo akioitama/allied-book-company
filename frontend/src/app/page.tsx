@@ -10,10 +10,12 @@ export const revalidate = 300;
 
 export default async function HomePage() {
   let newArrivals: Book[] = [];
+  let schoolBooks: Book[] = [];
 
   try {
     const sections = await getHomeSections();
     newArrivals = sections.newArrivals;
+    schoolBooks = sections.schoolBooks;
   } catch (e) {
     console.error("Home catalog load failed", e);
   }
@@ -94,6 +96,15 @@ export default async function HomePage() {
         viewAllHref="/shop"
         books={newArrivals}
       />
+
+      {schoolBooks.length > 0 && (
+        <BookCarousel
+          id="books-for-school"
+          title="Books for school"
+          viewAllHref="/shop?brand=Pearson"
+          books={schoolBooks}
+        />
+      )}
     </>
   );
 }
