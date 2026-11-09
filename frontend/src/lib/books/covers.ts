@@ -17,7 +17,7 @@
  */
 
 /** Width hint for Google covers. Google currently caps output at ~300px. */
-const GOOGLE_COVER_WIDTH = 800;
+const GOOGLE_COVER_WIDTH = 300;
 
 export function cleanIsbn(isbn?: string | null): string | null {
   if (!isbn) return null;
@@ -53,11 +53,11 @@ export function upgradeCoverUrl(url: string): string {
   return withGoogleHighRes(withOpenLibraryDefaultFalse(url));
 }
 
-/** Open Library Covers API by ISBN (L = largest available). */
+/** Open Library Covers API by ISBN (M = catalog-friendly size). */
 export function openLibraryCoverUrl(isbn?: string | null): string | null {
   const clean = cleanIsbn(isbn);
   if (!clean) return null;
-  return `https://covers.openlibrary.org/b/isbn/${clean}-L.jpg?default=false`;
+  return `https://covers.openlibrary.org/b/isbn/${clean}-M.jpg?default=false`;
 }
 
 /** Open Library Covers API by internal cover id (L = largest available). */

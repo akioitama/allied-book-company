@@ -155,6 +155,7 @@ export default function AboutPage() {
                 height={88}
                 className="h-16 w-auto md:h-20"
                 priority
+                unoptimized
               />
             </div>
             <h1 className="mt-8 font-display text-5xl leading-[1.02] tracking-tight md:text-7xl lg:text-8xl">
@@ -240,6 +241,7 @@ export default function AboutPage() {
             width={1024}
             height={850}
             priority
+            unoptimized
             sizes="(max-width: 896px) 100vw, 896px"
             className="h-auto w-full"
           />
@@ -259,8 +261,10 @@ export default function AboutPage() {
                   src={photo.src}
                   alt={photo.alt}
                   fill
+                  unoptimized
                   sizes="(max-width: 640px) 100vw, 33vw"
                   className="object-cover"
+                  loading="lazy"
                 />
               </div>
             ))}
@@ -370,8 +374,10 @@ export default function AboutPage() {
                             src={member.photo}
                             alt={`${member.name}, ${member.role}`}
                             fill
+                            unoptimized
                             className="object-cover object-top"
                             sizes={isLead ? "176px" : "144px"}
+                            loading="lazy"
                           />
                         ) : (
                           <span
@@ -483,8 +489,10 @@ export default function AboutPage() {
                   src="/branch-manager-rwp.jpg"
                   alt="Muhammad Siddique, Branch Manager — Islamabad / Rawalpindi"
                   fill
+                  unoptimized
                   className="object-cover object-top"
                   sizes="(max-width: 640px) 100vw, 10rem"
+                  loading="lazy"
                 />
               </div>
               <div className="flex flex-1 flex-col justify-center p-5 md:p-6">
@@ -530,8 +538,10 @@ export default function AboutPage() {
                   src="/executive-manager-rwp.jpg"
                   alt="Muhammad Saeed, Executive Manager — Rawalpindi branch"
                   fill
+                  unoptimized
                   className="object-cover object-top"
                   sizes="(max-width: 640px) 100vw, 10rem"
+                  loading="lazy"
                 />
               </div>
               <div className="flex flex-1 flex-col justify-center p-5 md:p-6">

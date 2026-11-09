@@ -34,6 +34,7 @@ export function BookCard({ book, className, showAdd = true }: Props) {
     >
       <Link
         href={`/shop/${book.slug}`}
+        prefetch={false}
         className="relative block aspect-[3/4] overflow-hidden"
       >
         <BookCover
@@ -56,7 +57,7 @@ export function BookCard({ book, className, showAdd = true }: Props) {
       <div className="flex flex-1 flex-col gap-2 p-5">
         <p className="eyebrow">{categoryName}</p>
         <h3 className="font-display text-xl leading-snug text-ink">
-          <Link href={`/shop/${book.slug}`} className="hover:text-oxblood">
+          <Link href={`/shop/${book.slug}`} prefetch={false} className="hover:text-oxblood">
             {book.title}
           </Link>
         </h3>

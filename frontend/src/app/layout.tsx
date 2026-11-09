@@ -7,23 +7,30 @@ import { MainShell } from "@/components/layout/MainShell";
 import { InkTrail } from "@/components/ui/InkTrail";
 import "./globals.css";
 
+// Keep font files lean — each weight/style is an extra CDN asset on every visit.
 const display = Fraunces({
   subsets: ["latin"],
   variable: "--font-display",
   weight: ["600", "700"],
   style: ["normal", "italic"],
+  display: "swap",
+  adjustFontFallback: true,
 });
 
 const body = Literata({
   subsets: ["latin"],
   variable: "--font-body",
-  weight: ["400", "500", "600"],
+  weight: ["400", "600"],
+  display: "swap",
+  adjustFontFallback: true,
 });
 
 const label = Outfit({
   subsets: ["latin"],
   variable: "--font-label",
-  weight: ["400", "500", "600"],
+  weight: ["400", "600"],
+  display: "swap",
+  adjustFontFallback: true,
 });
 
 export const metadata: Metadata = {

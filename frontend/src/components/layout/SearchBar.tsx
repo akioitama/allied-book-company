@@ -121,6 +121,7 @@ export function SearchBar({ transparent, className }: Props) {
             <li key={book.id}>
               <Link
                 href={`/shop/${book.slug}`}
+                prefetch={false}
                 onClick={() => setOpen(false)}
                 className="block px-3 py-2.5 transition hover:bg-parchment-deep"
               >

@@ -100,7 +100,8 @@ export function BookCover({
           fill
           sizes={sizes}
           priority={priority}
-          quality={80}
+          quality={65}
+          loading={priority ? undefined : "lazy"}
           // Google query-string URLs and storage objects are already sized;
           // skipping the optimizer avoids intermittent upstream failures that
           // used to cascade into the empty placeholder.

@@ -24,6 +24,7 @@ export function EmptyState({ title, body, ctaHref, ctaLabel, className }: Props)
           alt="Allied Book Co."
           width={96}
           height={88}
+          unoptimized
           className="h-16 w-auto md:h-20"
         />
       </div>
@@ -32,6 +33,7 @@ export function EmptyState({ title, body, ctaHref, ctaLabel, className }: Props)
       {ctaHref && ctaLabel && (
         <Link
           href={ctaHref}
+          prefetch={false}
           className="label-caps mt-8 border border-oxblood bg-oxblood px-5 py-3 text-[0.7rem] text-parchment transition hover:bg-ink"
         >
           {ctaLabel}

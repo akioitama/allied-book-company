@@ -51,7 +51,7 @@ export function TerritoryTile({
   }
 
   return (
-    <Link href={`/shop?category=${category.slug}`} className={classes}>
+    <Link href={`/shop?category=${category.slug}`} prefetch={false} className={classes}>
       {content}
     </Link>
   );

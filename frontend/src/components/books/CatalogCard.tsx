@@ -28,6 +28,7 @@ export function CatalogCard({ book, className }: Props) {
     <article className={cn("flex w-[148px] shrink-0 flex-col sm:w-[160px]", className)}>
       <Link
         href={`/shop/${book.slug}`}
+        prefetch={false}
         className="relative block aspect-[2/3] overflow-hidden border border-brass/50 bg-parchment-deep"
       >
         <BookCover
@@ -51,7 +52,7 @@ export function CatalogCard({ book, className }: Props) {
       </Link>
 
       <h3 className="mt-3 line-clamp-2 min-h-[2.6em] font-display text-base leading-snug text-ink">
-        <Link href={`/shop/${book.slug}`} className="hover:text-oxblood">
+        <Link href={`/shop/${book.slug}`} prefetch={false} className="hover:text-oxblood">
           {book.title}
         </Link>
       </h3>

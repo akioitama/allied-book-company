@@ -94,6 +94,7 @@ export function BookCarousel({
           <h2 className="font-display text-3xl text-ink md:text-4xl">{title}</h2>
           <Link
             href={viewAllHref}
+            prefetch={false}
             className="label-caps shrink-0 text-[0.7rem] text-oxblood transition hover:underline"
           >
             View All

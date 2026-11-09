@@ -49,6 +49,7 @@ export function ShopResultRow({ book, className }: Props) {
 
       <Link
         href={`/shop/${book.slug}`}
+        prefetch={false}
         className="relative mx-auto w-[140px] shrink-0 self-center p-5 sm:mx-0 sm:w-[160px]"
       >
         <div className="relative aspect-[3/4] overflow-hidden border border-[#E5E7EB] bg-[#F9FAFB]">
@@ -64,7 +65,7 @@ export function ShopResultRow({ book, className }: Props) {
 
       <div className="flex min-w-0 flex-1 flex-col justify-center px-5 pb-5 sm:py-6 sm:pl-0 sm:pr-6">
         <h3 className="font-display text-xl font-semibold leading-snug text-[#111827] md:text-2xl">
-          <Link href={`/shop/${book.slug}`} className="hover:text-oxblood">
+          <Link href={`/shop/${book.slug}`} prefetch={false} className="hover:text-oxblood">
             {book.title}
           </Link>
         </h3>

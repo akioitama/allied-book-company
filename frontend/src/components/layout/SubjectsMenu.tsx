@@ -143,6 +143,7 @@ export function SubjectsMenu({ className, inverted }: Props) {
                 </h3>
                 <Link
                   href={subjectHref(activeGroup)}
+                  prefetch={false}
                   onClick={() => setOpen(false)}
                   className="label-caps absolute right-0 top-1/2 -translate-y-1/2 text-[0.6rem] text-oxblood hover:underline"
                 >
@@ -155,6 +156,7 @@ export function SubjectsMenu({ className, inverted }: Props) {
                   Browse the full{" "}
                   <Link
                     href={subjectHref(activeGroup)}
+                    prefetch={false}
                     onClick={() => setOpen(false)}
                     className="text-oxblood hover:underline"
                   >
@@ -171,6 +173,7 @@ export function SubjectsMenu({ className, inverted }: Props) {
                     >
                       <Link
                         href={subSubjectHref(activeGroup, child)}
+                        prefetch={false}
                         onClick={() => setOpen(false)}
                         className="block border-b border-transparent py-1.5 font-body text-sm text-ink-soft transition hover:border-brass/40 hover:text-oxblood"
                       >

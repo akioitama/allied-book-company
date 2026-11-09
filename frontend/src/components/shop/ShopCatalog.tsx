@@ -17,7 +17,7 @@ import {
 import { SUBJECT_GROUPS } from "@/lib/data/subjects";
 import type { Book } from "@/types";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 12;
 
 const DEFAULT_FILTERS: ShopFilters = {
   sort: "relevance",

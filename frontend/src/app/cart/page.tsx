@@ -52,6 +52,7 @@ export default function CartPage() {
               >
                 <Link
                   href={`/shop/${item.slug}`}
+                  prefetch={false}
                   className="relative aspect-[3/4] overflow-hidden"
                 >
                   <BookCover
@@ -65,6 +66,7 @@ export default function CartPage() {
                 <div>
                   <Link
                     href={`/shop/${item.slug}`}
+                    prefetch={false}
                     className="mt-1 block font-display text-xl hover:text-oxblood"
                   >
                     {item.title}
@@ -141,12 +143,14 @@ export default function CartPage() {
           </p>
           <Link
             href="/checkout"
+            prefetch={false}
             className="label-caps mt-6 flex justify-center border border-oxblood bg-oxblood px-5 py-3 text-[0.7rem] text-parchment transition hover:bg-ink"
           >
             Proceed to checkout
           </Link>
           <Link
             href="/shop"
+            prefetch={false}
             className="label-caps mt-3 flex justify-center border border-brass/40 px-5 py-3 text-[0.7rem] text-ink transition hover:border-oxblood hover:text-oxblood"
           >
             Continue shopping

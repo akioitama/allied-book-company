@@ -461,22 +461,24 @@ export async function getRelatedBooks(
 export async function getHomeSections(client?: SupabaseClient | null) {
   const supabase = clientOrThrow(client);
 
-  const noCount = { pageSize: 16, withCount: false } as const;
-  const [flaggedNew, flaggedBest, onSale, newest, byStock, catalog] =
-    await Promise.all([
-      listBooks({ ...noCount, isNew: true, orderBy: "created_at", ascending: false }, supabase),
-      listBooks({ ...noCount, bestseller: true, orderBy: "stock", ascending: false }, supabase),
-      listBooks({ ...noCount, onSale: true, orderBy: "discount_percent", ascending: false }, supabase),
-      listBooks({ ...noCount, orderBy: "created_at", ascending: false }, supabase),
-      listBooks({ ...noCount, orderBy: "stock", ascending: false }, supabase),
-      listBooks({ ...noCount, orderBy: "title", ascending: true }, supabase),
-    ]);
+  // Home only renders New Arrivals — keep the query small to cut origin + cover traffic.
+  const noCount = { pageSize: 10, withCount: false } as const;
+  const [flaggedNew, newest] = await Promise.all([
+    listBooks(
+      { ...noCount, isNew: true, orderBy: "created_at", ascending: false },
+      supabase
+    ),
+    listBooks(
+      { ...noCount, orderBy: "created_at", ascending: false },
+      supabase
+    ),
+  ]);
 
   return {
     newArrivals: flaggedNew.books.length ? flaggedNew.books : newest.books,
-    bestsellers: flaggedBest.books.length ? flaggedBest.books : byStock.books,
-    onSale: onSale.books,
-    catalogPreview: catalog.books,
+    bestsellers: [] as Book[],
+    onSale: [] as Book[],
+    catalogPreview: [] as Book[],
   };
 }
 

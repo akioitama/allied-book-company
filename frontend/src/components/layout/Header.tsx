@@ -20,6 +20,7 @@ export function Header() {
   const navLink = (href: string, label: string, size: "md" | "sm" = "md") => (
     <Link
       href={href}
+      prefetch={false}
       className={cn(
         "label-caps inline-flex h-5 items-center leading-none text-white/85 transition hover:text-white",
         size === "md" ? "text-[0.7rem]" : "text-[0.62rem]",
@@ -88,13 +89,14 @@ export function Header() {
 
       <div className="border-b border-white/15 bg-[#1E3A8A] text-white shadow-ambient">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-3 md:gap-4 md:px-8 md:py-4">
-          <Link href="/" className="group flex items-center gap-3">
+          <Link href="/" prefetch={false} className="group flex items-center gap-3">
             <Image
               src="/logo.png"
               alt="Allied Book Co."
               width={48}
               height={44}
               priority
+              unoptimized
               className="h-10 w-auto md:h-11"
             />
             <span className="font-display text-lg leading-none text-white md:text-xl">
@@ -120,6 +122,7 @@ export function Header() {
           <div className="flex items-center">
             <Link
               href="/cart"
+              prefetch={false}
               className="relative label-caps inline-flex items-center gap-2 border border-white/45 px-3 py-2 text-[0.65rem] text-white transition hover:border-white hover:bg-white/10"
             >
               <svg

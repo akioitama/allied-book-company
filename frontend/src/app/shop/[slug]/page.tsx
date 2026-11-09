@@ -84,13 +84,14 @@ export default async function BookDetailPage({ params }: Props) {
   return (
     <div className="mx-auto max-w-6xl px-5 py-14 md:px-8">
       <p className="eyebrow mb-6">
-        <Link href="/shop" className="hover:text-ink">
+        <Link href="/shop" prefetch={false} className="hover:text-ink">
           Shop
         </Link>
         {" / "}
         {book.category_slug && categoryName ? (
           <Link
             href={`/shop?category=${book.category_slug}`}
+            prefetch={false}
             className="hover:text-ink"
           >
             {categoryName}
