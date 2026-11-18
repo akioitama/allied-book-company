@@ -53,37 +53,23 @@ export function Header() {
               </span>
             </p>
           </div>
-          <div
-            className="flex items-center gap-2"
-            aria-label="Accepted payment methods"
-          >
-            <span className="hidden font-label text-[0.58rem] uppercase tracking-[0.16em] text-white/50 sm:inline">
-              We accept
+          <div className="flex items-center gap-x-3">
+            <a
+              href="mailto:info@alliedbook.com"
+              className="font-label text-[0.65rem] tracking-[0.06em] text-[#93C5FD] transition hover:text-white"
+            >
+              info@alliedbook.com
+            </a>
+            <span className="text-white/25" aria-hidden>
+              |
             </span>
-            <VisaBadge />
-            <MastercardBadge />
-            <CodBadge />
+            <a
+              href="tel:+923375917645"
+              className="font-label text-[0.65rem] tracking-[0.06em] text-[#93C5FD] transition hover:text-white"
+            >
+              0337-5917645
+            </a>
           </div>
-        </div>
-      </div>
-
-      <div className="border-b border-white/10 bg-[#152238] text-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-1.5 px-5 py-2 md:px-8">
-          <a
-            href="mailto:info@alliedbook.com"
-            className="font-label text-[0.65rem] tracking-[0.06em] text-[#93C5FD] transition hover:text-white"
-          >
-            info@alliedbook.com
-          </a>
-          <span className="text-white/25" aria-hidden>
-            |
-          </span>
-          <a
-            href="tel:+923375917645"
-            className="font-label text-[0.65rem] tracking-[0.06em] text-[#93C5FD] transition hover:text-white"
-          >
-            0337-5917645
-          </a>
         </div>
       </div>
 
@@ -209,92 +195,6 @@ function DeliveryVanIcon() {
         opacity="0.7"
       />
     </svg>
-  );
-}
-
-function VisaBadge() {
-  return (
-    <span
-      title="Visa"
-      className="group relative inline-flex h-6 w-[42px] overflow-hidden rounded-[4px] shadow-[0_1px_3px_rgba(0,0,0,0.35)] ring-1 ring-white/15 transition hover:-translate-y-0.5 hover:shadow-[0_4px_10px_rgba(26,31,113,0.45)]"
-    >
-      <svg viewBox="0 0 42 24" className="h-full w-full" aria-hidden>
-        <defs>
-          <linearGradient id="visa-bg" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#1A1F71" />
-            <stop offset="100%" stopColor="#2B3990" />
-          </linearGradient>
-        </defs>
-        <rect width="42" height="24" rx="4" fill="url(#visa-bg)" />
-        <rect x="0" y="7" width="42" height="4" fill="#F7B600" opacity="0.95" />
-        <text
-          x="21"
-          y="18.5"
-          textAnchor="middle"
-          fill="#FFFFFF"
-          fontSize="7.5"
-          fontWeight="700"
-          fontFamily="Arial, Helvetica, sans-serif"
-          letterSpacing="0.5"
-        >
-          VISA
-        </text>
-      </svg>
-      <span className="sr-only">Visa</span>
-    </span>
-  );
-}
-
-function MastercardBadge() {
-  return (
-    <span
-      title="Mastercard"
-      className="group relative inline-flex h-6 w-[42px] overflow-hidden rounded-[4px] shadow-[0_1px_3px_rgba(0,0,0,0.35)] ring-1 ring-white/15 transition hover:-translate-y-0.5 hover:shadow-[0_4px_10px_rgba(0,0,0,0.4)]"
-    >
-      <svg viewBox="0 0 42 24" className="h-full w-full" aria-hidden>
-        <rect width="42" height="24" rx="4" fill="#111827" />
-        <circle cx="17" cy="12" r="6" fill="#EB001B" />
-        <circle cx="25" cy="12" r="6" fill="#F79E1B" />
-        <path
-          d="M21 7.2a6 6 0 0 1 0 9.6 6 6 0 0 1 0-9.6z"
-          fill="#FF5F00"
-        />
-      </svg>
-      <span className="sr-only">Mastercard</span>
-    </span>
-  );
-}
-
-function CodBadge() {
-  return (
-    <span
-      title="Cash on delivery"
-      className="group relative inline-flex h-6 w-[42px] overflow-hidden rounded-[4px] shadow-[0_1px_3px_rgba(0,0,0,0.35)] ring-1 ring-white/15 transition hover:-translate-y-0.5 hover:shadow-[0_4px_10px_rgba(22,101,52,0.4)]"
-    >
-      <svg viewBox="0 0 42 24" className="h-full w-full" aria-hidden>
-        <defs>
-          <linearGradient id="cod-bg" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#166534" />
-            <stop offset="100%" stopColor="#15803D" />
-          </linearGradient>
-        </defs>
-        <rect width="42" height="24" rx="4" fill="url(#cod-bg)" />
-        <rect x="8" y="7" width="10" height="10" rx="1.2" fill="#BBF7D0" opacity="0.95" />
-        <path d="M13 7v10M8 12h10" stroke="#166534" strokeWidth="1" />
-        <text
-          x="30"
-          y="15"
-          textAnchor="middle"
-          fill="#FFFFFF"
-          fontSize="7"
-          fontWeight="700"
-          fontFamily="Arial, Helvetica, sans-serif"
-        >
-          COD
-        </text>
-      </svg>
-      <span className="sr-only">Cash on delivery</span>
-    </span>
   );
 }
 

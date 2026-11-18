@@ -14,7 +14,7 @@ export function MainShell({ children }: { children: React.ReactNode }) {
       className={
         flush
           ? "relative z-10 min-h-[70vh]"
-          : "relative z-10 min-h-[70vh] pt-[10.75rem] md:pt-[9.5rem]"
+          : "relative z-10 min-h-[70vh] pt-[8.5rem] md:pt-[7.25rem]"
       }
     >
       {children}

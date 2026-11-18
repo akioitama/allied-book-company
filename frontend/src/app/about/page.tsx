@@ -135,7 +135,7 @@ export default function AboutPage() {
     <>
       {/* Hero */}
       <section
-        className="relative overflow-hidden pt-[10.75rem] text-white md:pt-[9.5rem]"
+        className="relative overflow-hidden pt-[8.5rem] text-white md:pt-[7.25rem]"
         style={{
           background:
             "linear-gradient(150deg, #0F172A 0%, #1E3A8A 45%, #2563EB 100%)",
