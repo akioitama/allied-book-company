@@ -13,6 +13,10 @@ type Props = {
   fallbackSrcs?: Array<string | null | undefined>;
   className?: string;
   imageClassName?: string;
+  /** Render the cover as a 3D book (page block, spine seam, drop shadow). */
+  book3d?: boolean;
+  /** Tilt the book on hover (only inside a `group` or when hovered). */
+  tilt?: boolean;
 };
 
 /**
@@ -42,6 +46,8 @@ export function BookCover({
   fallbackSrcs,
   className,
   imageClassName,
+  book3d = false,
+  tilt = false,
 }: Props) {
   // Stabilize identity so parent re-renders don't reset the fallback index.
   const sourceKey = [src, ...(fallbackSrcs ?? [])].filter(Boolean).join("|");
@@ -89,6 +95,8 @@ export function BookCover({
     <div
       className={cn(
         "book-cover relative h-full w-full overflow-hidden bg-[#EFF6FF]",
+        book3d && "book-3d",
+        book3d && tilt && "book-3d-hover",
         className
       )}
     >

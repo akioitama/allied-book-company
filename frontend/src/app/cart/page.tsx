@@ -59,7 +59,7 @@ export default function CartPage() {
                 <Link
                   href={`/shop/${item.slug}`}
                   prefetch={false}
-                  className="relative aspect-[3/4] overflow-hidden"
+                  className="relative aspect-[3/4]"
                 >
                   <BookCover
                     src={primary}
@@ -67,6 +67,8 @@ export default function CartPage() {
                     alt=""
                     title={item.title}
                     sizes="88px"
+                    book3d
+                    className="h-full w-full"
                   />
                 </Link>
                 <div>

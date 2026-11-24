@@ -35,7 +35,7 @@ export function BookCard({ book, className, showAdd = true }: Props) {
       <Link
         href={`/shop/${book.slug}`}
         prefetch={false}
-        className="relative block aspect-[3/4] overflow-hidden"
+        className="relative block aspect-[3/4]"
       >
         <BookCover
           src={primary}
@@ -43,6 +43,9 @@ export function BookCard({ book, className, showAdd = true }: Props) {
           alt={`Cover of ${book.title}`}
           title={book.title}
           imageClassName="transition duration-700 group-hover:scale-[1.05] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+          book3d
+          tilt
+          className="h-full w-full"
         />
         <span className="absolute left-3 top-3 z-10 border border-[#93C5FD] bg-white px-2 py-1 font-label text-[0.58rem] uppercase tracking-[0.16em] text-[#1E3A8A] shadow-ambient">
           {categoryName ?? "Catalog"}

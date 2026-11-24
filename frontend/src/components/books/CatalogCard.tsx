@@ -26,12 +26,12 @@ export function CatalogCard({ book, className }: Props) {
 
   return (
     <article
-      className={cn("flex w-[180px] shrink-0 flex-col", className)}
+      className={cn("group flex w-[186px] shrink-0 flex-col", className)}
     >
       <Link
         href={`/shop/${book.slug}`}
         prefetch={false}
-        className="relative block h-[240px] overflow-hidden border border-brass/50 bg-parchment-deep"
+        className="relative block h-[240px] overflow-visible"
       >
         <BookCover
           src={primary}
@@ -40,6 +40,9 @@ export function CatalogCard({ book, className }: Props) {
           title={book.title}
           sizes="180px"
           imageClassName="transition duration-500 hover:scale-[1.03]"
+          book3d
+          tilt
+          className="h-full w-full"
         />
         {discount > 0 && (
           <span className="absolute left-0 top-0 z-10 bg-oxblood px-2 py-1 font-label text-[0.58rem] uppercase tracking-[0.12em] text-white">

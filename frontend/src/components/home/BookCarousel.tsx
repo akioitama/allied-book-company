@@ -16,7 +16,8 @@ type Props = {
   className?: string;
 };
 
-// CatalogCard is 180px wide + 16px gap (gap-4) — keep in sync with the card.
+// Book cards are 180px wide; the extra 6px covers the 3D page-edge layers, and
+// gap-4 adds 16px between cards — keep in sync with CatalogCard.
 const CARD_STEP = 196;
 
 export function BookCarousel({
@@ -122,7 +123,7 @@ export function BookCarousel({
 
           <div
             ref={scrollerRef}
-            className="flex gap-4 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex gap-4 overflow-x-auto scroll-smooth px-3 pb-4 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {books.map((book) => (
               <CatalogCard key={book.id} book={book} />

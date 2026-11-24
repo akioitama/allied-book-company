@@ -52,10 +52,12 @@ export function ShopResultRow({ book, className }: Props) {
         prefetch={false}
         className="relative mx-auto w-[140px] shrink-0 self-center p-5 sm:mx-0 sm:w-[160px]"
       >
-        <div className="relative aspect-[3/4] overflow-hidden border border-[#E5E7EB] bg-[#F9FAFB]">
+        <div className="relative aspect-[3/4]">
           <BookCover
             src={primary}
             fallbackSrcs={fallbacks}
+            book3d
+            className="h-full w-full"
             alt={`Cover of ${book.title}`}
             title={book.title}
             sizes="160px"

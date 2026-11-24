@@ -104,7 +104,7 @@ export default async function BookDetailPage({ params }: Props) {
       <div className="mx-auto max-w-4xl">
         <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:gap-10 md:gap-12">
           <div className="mx-auto w-[180px] shrink-0 self-start sm:mx-0 md:w-[200px]">
-            <div className="map-panel relative aspect-[3/4] overflow-hidden">
+            <div className="relative aspect-[3/4]">
               <BookCover
                 src={primaryCover}
                 fallbackSrcs={coverFallbacks}
@@ -112,6 +112,9 @@ export default async function BookDetailPage({ params }: Props) {
                 title={book.title}
                 priority
                 sizes="200px"
+                book3d
+                tilt
+                className="h-full w-full"
               />
             </div>
           </div>

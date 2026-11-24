@@ -73,6 +73,67 @@
   .book-cover__img {
     @apply object-cover;
   }
+
+  /*
+   * 3D book treatment — the cover reads as a real closed book lying on a
+   * surface: page block on the right, spine seam on the left, drop shadow
+   * following the spine. Pure CSS (no images), so it scales to any card size.
+   */
+  .book-3d {
+    position: relative;
+    isolation: isolate;
+    box-shadow:
+      /* seated-on-surface shadow + page block on the binding side */
+      -7px 9px 18px rgba(15, 23, 42, 0.26),
+      -2px 2px 5px rgba(15, 23, 42, 0.18),
+      /* stacked leaves on the opposite edge (subtle 2px fore-edge) */
+      3px 1px 0 -1px #e2e8f0,
+      4px 2px 0 -2px #cbd5e1;
+  }
+
+  /* Sheen down the binding edge — reads as the folded cover, not a dark band. */
+  .book-3d::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      rgba(15, 23, 42, 0.16) 0,
+      rgba(15, 23, 42, 0.05) 3px,
+      rgba(255, 255, 255, 0.14) 5px,
+      rgba(255, 255, 255, 0) 14px
+    );
+  }
+
+  /* Thin crease exactly on the spine — 2px, so artwork stays legible. */
+  .book-3d::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 2px;
+    z-index: 3;
+    pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      rgba(15, 23, 42, 0.42) 0,
+      rgba(15, 23, 42, 0.12) 60%,
+      rgba(15, 23, 42, 0) 100%
+    );
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .book-3d-hover {
+      @apply transition-transform duration-500 ease-out;
+      transform-style: preserve-3d;
+    }
+
+    .book-3d-hover:hover,
+    .group:hover .book-3d-hover {
+      transform: perspective(900px) rotateY(-12deg) rotateX(2deg) translateY(-3px);
+    }
+  }
 }
 
 @layer utilities {
