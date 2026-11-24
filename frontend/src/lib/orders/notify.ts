@@ -82,13 +82,74 @@ export function buildOrderText(body: OrderNotifyPayload): string {
   return lines.join("\n");
 }
 
+export type OrderEmailResult =
+  | {
+      ok: true;
+      via: "server" | "formsubmit";
+      /** FormSubmit asks for a one-time confirmation before it relays mail. */
+      needsActivation?: boolean;
+    }
+  | { ok: false; error: string };
+
 /**
- * Send order email from the browser via FormSubmit.
- * FormSubmit blocks many server-side calls; client-side works on localhost / Vercel.
+ * Primary sender: the Next.js API route (`/api/orders`), which uses Gmail SMTP
+ * or Resend. Those are authenticated channels, so mail is actually delivered.
+ * Returns null when the route is unavailable (e.g. `next dev` running a stale
+ * build), so the caller can fall back to the browser relay.
  */
+async function sendViaApi(body: OrderNotifyPayload): Promise<OrderEmailResult | null> {
+  try {
+    const res = await fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (res.ok) return { ok: true, via: "server" };
+
+    let detail = "";
+    try {
+      const data = (await res.json()) as { error?: string };
+      detail = data?.error?.trim() || "";
+    } catch {
+      /* route may return a non-JSON error page */
+    }
+
+    // 404/405 = route missing; 500 without a message = route crashed. In both
+    // cases the browser relay below is worth a shot. Everything else (502 etc.)
+    // is a real, reportable mail failure.
+    if (res.status === 404 || res.status === 405 || (!detail && res.status >= 500)) {
+      return null;
+    }
+    return {
+      ok: false,
+      error:
+        detail ||
+        "Could not send the order email. Please contact us on WhatsApp so we do not miss your order.",
+    };
+  } catch {
+    // Network error — try the browser relay.
+    return null;
+  }
+}
+
+/**
+ * Send the order email to the store.
+ *
+ * Order matters: the API route (authenticated SMTP / provider) is tried first.
+ * FormSubmit (free relay, no account) is only a last-ditch fallback — it needs a
+ * one-time activation and is rate-limited, so it must not be the primary channel.
+ */
+export async function sendOrderEmail(body: OrderNotifyPayload): Promise<OrderEmailResult> {
+  const viaApi = await sendViaApi(body);
+  if (viaApi) return viaApi;
+  return sendOrderEmailFromBrowser(body);
+}
+
+/** Browser-side FormSubmit relay. Used only when the API route cannot send. */
 export async function sendOrderEmailFromBrowser(
   body: OrderNotifyPayload
-): Promise<{ ok: true; needsActivation?: boolean } | { ok: false; error: string }> {
+): Promise<OrderEmailResult> {
   const subject = `New order from ${body.shipping.name} — Allied Book Co.`;
   const message = buildOrderText(body);
 
@@ -167,7 +228,7 @@ export async function sendOrderEmailFromBrowser(
         (data.message || "").toLowerCase().includes("activate")
     );
 
-    return { ok: true, needsActivation };
+    return { ok: true, via: "formsubmit", needsActivation };
   } catch {
     return {
       ok: false,

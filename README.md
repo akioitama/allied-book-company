@@ -76,7 +76,32 @@ Unique interactive pieces:
 2. Point webhook to `POST /webhooks/stripe` (checkout.session.completed).
 3. Checkout will redirect to Stripe-hosted payment instead of the demo order path.
 
-## Routes
+## Order emails
+
+Placing an order calls `POST /api/orders` (`frontend/src/app/api/orders/route.ts`), which
+emails the order to the store inbox. Configure **one** authenticated sender in
+`frontend/.env.local` (and in the Vercel project's environment variables):
+
+| Variable | Purpose |
+|---|---|
+| `GMAIL_USER` | Gmail address used to send (e.g. `info@alliedbook.com`) |
+| `GMAIL_APP_PASSWORD` | Google **App Password** for that account (2-Step Verification required) |
+| `RESEND_API_KEY` | Alternative to Gmail — [Resend](https://resend.com) API key |
+| `ORDER_FROM_EMAIL` | Resend sender, e.g. `Allied Book Co. <orders@alliedbook.com>` (domain must be verified) |
+| `ORDER_NOTIFY_EMAIL` | Where orders go (default `info@alliedbook.com`; comma-separate for several inboxes) |
+
+Sending order: Gmail SMTP → Resend → free FormSubmit relay (last resort; needs a one-time
+activation and may be blocked — if it is used, the success page asks the customer to also
+message WhatsApp).
+
+Diagnose a deployment (no dashboard access needed):
+
+- `GET  /api/orders` — shows which sender is configured
+- `POST /api/orders` with body `{"test": true}` — sends a test email to `ORDER_NOTIFY_EMAIL`
+
+If no sender is configured, checkout shows an error instead of a false "order confirmed",
+so orders are never silently lost.
+
 
 | Route | Purpose |
 |---|---|

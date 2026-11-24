@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatPrice, cn } from "@/lib/utils";
 import { deliveryFeeCents, orderTotalCents } from "@/lib/shipping";
-import { sendOrderEmailFromBrowser } from "@/lib/orders/notify";
+import { sendOrderEmail } from "@/lib/orders/notify";
 import { useCartStore } from "@/lib/store/cart";
 
 const steps = [
@@ -55,22 +55,25 @@ export default function CheckoutPage() {
   }
 
   async function handlePlaceOrder() {
+    // Snapshot the order first so a failed send never costs the customer their cart.
+    const payload = {
+      items: items.map((i) => ({
+        title: i.title,
+        author: i.author,
+        quantity: i.quantity,
+        price_cents: i.price_cents,
+      })),
+      shipping: form,
+      payment_method: paymentMethod,
+      subtotal_cents: subtotal,
+      delivery_cents: delivery,
+      total_cents: grandTotal,
+    };
+
     setLoading(true);
     setError(null);
     try {
-      const result = await sendOrderEmailFromBrowser({
-        items: items.map((i) => ({
-          title: i.title,
-          author: i.author,
-          quantity: i.quantity,
-          price_cents: i.price_cents,
-        })),
-        shipping: form,
-        payment_method: paymentMethod,
-        subtotal_cents: subtotal,
-        delivery_cents: delivery,
-        total_cents: grandTotal,
-      });
+      const result = await sendOrderEmail(payload);
 
       if (!result.ok) {
         setError(result.error);
@@ -78,7 +81,11 @@ export default function CheckoutPage() {
       }
 
       clear();
-      router.push("/checkout/success");
+      // `via=manual` tells the success page whether the store actually got the
+      // email, so it never claims "sent" when it was not.
+      router.push(
+        result.needsActivation ? "/checkout/success?via=manual" : "/checkout/success"
+      );
     } catch {
       setError(
         "Could not send your order. Please check your connection and try again."
