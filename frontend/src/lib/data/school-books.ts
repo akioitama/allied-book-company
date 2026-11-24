@@ -1,6 +1,6 @@
 /**
- * "Books for school" shelf — these are sold as e-books: no delivery charge and
- * the order must be paid upfront.
+ * "Books for school" shelf — these are sold as e-books: no cash on delivery
+ * (payment must be upfront) and no delivery charge.
  *
  * The canonical rules live in `@/lib/shipping` (shared with the server route);
  * this module is the books-facing entry point. Add an ISBN there to make a book

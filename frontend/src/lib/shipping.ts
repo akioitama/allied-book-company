@@ -106,7 +106,7 @@ export function cartPricing(lines: PricingLine[]): CartPricing {
 
   let deliveryNote: string;
   if (!hasPhysical && hasEbooks) {
-    deliveryNote = "E-books are delivered digitally — no delivery charge.";
+    deliveryNote = "E-books need no delivery — payment is upfront only.";
   } else if (subtotalCents === 0) {
     deliveryNote = "Nothing to deliver yet.";
   } else if (deliveryCents > 0) {

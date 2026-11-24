@@ -128,7 +128,7 @@ export function AddToCartButton({
 
       {isEbook(book.isbn) && (
         <span className="font-label text-[0.58rem] uppercase tracking-[0.14em] text-forest">
-          E-book · no delivery
+          E-book · no cash on delivery
         </span>
       )}
     </div>

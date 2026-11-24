@@ -72,7 +72,7 @@ export function buildOrderText(body: OrderNotifyPayload): string {
     const unit = formatPrice(item.price_cents);
     lines.push(
       `  • ${item.title}${item.author ? ` — ${item.author}` : ""}${
-        item.is_ebook ? "  (E-BOOK — no delivery)" : ""
+        item.is_ebook ? "  (E-BOOK — no cash on delivery)" : ""
       }`,
       `      Qty ${item.quantity} × ${unit} = ${lineTotal}`
     );

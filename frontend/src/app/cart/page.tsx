@@ -82,7 +82,7 @@ export default function CartPage() {
                     {formatPrice(item.price_cents)} each
                     {isEbookItem(item) ? (
                       <span className="ml-2 font-label text-[0.58rem] uppercase tracking-[0.14em] text-forest">
-                        E-book · no delivery
+                        E-book · no cash on delivery
                       </span>
                     ) : null}
                   </p>

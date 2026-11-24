@@ -110,7 +110,7 @@ server-side in `POST /api/orders`:
 
 | Cart | Delivery | Payment |
 |---|---|---|
-| E-books only | **Free** — no delivery charge | **Upfront only** (cash on delivery is hidden) |
+| E-books only | **Free** — no delivery charge | **Upfront only** — no cash on delivery |
 | Physical only | Rs 350 if under Rs 8,000, else free | Cash on delivery or upfront |
 | E-book **+** physical | Rs 350 when the **combined** subtotal is under Rs 8,000, else free | **Upfront only** |
 
