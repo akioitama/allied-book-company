@@ -12,7 +12,6 @@ const STATS = [
   { value: "40+", label: "Years of service" },
   { value: "Global", label: "Publisher network" },
 ] as const;
-# Optional: where order emails go (comma-separated for several inboxes)
 
 const MAIN_STOREFRONT = {
   src: "/storefront-main.jpg",

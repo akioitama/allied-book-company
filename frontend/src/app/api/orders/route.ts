@@ -203,66 +203,200 @@ async function sendViaFormSubmit(
   }
 
   if (!res.ok || data.success === false || data.success === "false") {
-    console.error("FormSubmit order email failed", raw);
-    // FormSubmit reports transient failures as HTTP 200 + {"message":"Server Error"}.
-    const transient = /server error|try again|unavailable/i.test(
-      `${data.message || ""} ${raw}`
-    );
+    console.error("FormSubmit order email failed", raw.slice(0, 500));
+    // FormSubmit sits behind Cloudflare: automated posts often get an HTML
+    // "Just a moment..." bot challenge instead of JSON.
     throw new Error(
-      transient
-        ? "The email relay is temporarily unavailable. Please place the order again in a minute, or message us on WhatsApp."
-        : "No email provider is configured and the fallback relay refused the order. " +
-            "Set GMAIL_USER + GMAIL_APP_PASSWORD (or RESEND_API_KEY) in the deployment environment."
+      "the free fallback relay is blocking automated sends (Cloudflare challenge)"
     );
   }
   return true;
 }
 
-/** True when at least one authenticated sender is configured. */
-function serverMailConfigured() {
-  const gmail =
-    Boolean(process.env.GMAIL_USER?.trim()) &&
-    Boolean(process.env.GMAIL_APP_PASSWORD?.trim());
-  return gmail || Boolean(process.env.RESEND_API_KEY?.trim());
+function gmailCredentials() {
+  const user = process.env.GMAIL_USER?.trim();
+  const pass = process.env.GMAIL_APP_PASSWORD?.trim();
+  return { user, pass, ready: Boolean(user && pass) };
 }
 
+function resendCredentials() {
+  const key = process.env.RESEND_API_KEY?.trim();
+  return { key, ready: Boolean(key) };
+}
+
+/** True when at least one authenticated sender is configured. */
+function serverMailConfigured() {
+  return gmailCredentials().ready || resendCredentials().ready;
+}
+
+/**
+ * Describes the App Password without leaking it: length, whitespace/padding
+ * problems are enough to spot the usual paste mistakes.
+ */
+function describeGmailConfig() {
+  const { user, pass } = gmailCredentials();
+  const issues: string[] = [];
+  if (!user) issues.push("GMAIL_USER is missing or empty");
+  if (!pass) {
+    issues.push("GMAIL_APP_PASSWORD is missing or empty");
+  } else {
+    const compact = pass.replace(/\s+/g, "");
+    if (pass !== compact) {
+      issues.push(
+        "GMAIL_APP_PASSWORD contains spaces — use the 16 characters with no spaces"
+      );
+    }
+    if (/^["']|["']$/.test(pass)) {
+      issues.push("GMAIL_APP_PASSWORD is wrapped in quotes — remove them");
+    }
+    if (!/^[a-z]{16}$/.test(compact)) {
+      issues.push(
+        "GMAIL_APP_PASSWORD does not look like a 16-letter App Password — it may be the account password, a revoked code, or a copy error"
+      );
+    }
+  }
+  return {
+    user: user || null,
+    passwordLength: pass ? pass.length : 0,
+    passwordLooksValid: Boolean(
+      pass && /^[a-z]{16}$/.test(pass.replace(/\s+/g, ""))
+    ),
+    issues,
+  };
+}
+
+export type Failure = { channel: string; reason: string };
+
+/**
+ * Tries every configured channel in order and records why each one failed, so
+ * the caller can surface an accurate error instead of guessing.
+ */
 async function sendOrderMail(
   subject: string,
   text: string,
   replyTo: string,
   shipping: OrderBody["shipping"],
   paymentMethod?: string
-): Promise<{ via: string }> {
-  if (await sendViaGmail(subject, text, replyTo, STORE_EMAILS)) {
-    return { via: "gmail" };
+): Promise<{ via: string; failures: Failure[] }> {
+  const failures: Failure[] = [];
+
+  try {
+    if (await sendViaGmail(subject, text, replyTo, STORE_EMAILS)) {
+      return { via: "gmail", failures };
+    }
+  } catch (e) {
+    const reason = e instanceof Error ? e.message : String(e);
+    console.error("Gmail send failed", reason);
+    failures.push({ channel: "gmail", reason });
   }
-  // Gmail failures throw (surfacing the SMTP error), so this only runs when
-  // Gmail is not configured at all.
-  if (await sendViaResend(subject, text, replyTo, STORE_EMAILS)) {
-    return { via: "resend" };
+
+  try {
+    if (await sendViaResend(subject, text, replyTo, STORE_EMAILS)) {
+      return { via: "resend", failures };
+    }
+  } catch (e) {
+    const reason = e instanceof Error ? e.message : String(e);
+    console.error("Resend send failed", reason);
+    failures.push({ channel: "resend", reason });
   }
-  await sendViaFormSubmit(subject, text, shipping, paymentMethod);
-  return { via: "formsubmit" };
+
+  try {
+    if (await sendViaFormSubmit(subject, text, shipping, paymentMethod)) {
+      return { via: "formsubmit", failures };
+    }
+  } catch (e) {
+    const reason = e instanceof Error ? e.message : String(e);
+    failures.push({ channel: "formsubmit", reason });
+  }
+
+  throw Object.assign(new Error(orderMailErrorMessage(failures)), { failures });
 }
 
-/** Status check: `GET /api/orders` reports which email channel is configured. */
-export async function GET() {
-  const gmail =
-    Boolean(process.env.GMAIL_USER?.trim()) &&
-    Boolean(process.env.GMAIL_APP_PASSWORD?.trim());
-  const resend = Boolean(process.env.RESEND_API_KEY?.trim());
-  return NextResponse.json({
-    ok: serverMailConfigured(),
-    gmail,
-    resend,
-    formsubmitFallback: true,
+/**
+ * Turns collected failures into a message naming the real problem. Only says
+ * "not configured" when credentials truly are absent.
+ */
+function orderMailErrorMessage(failures: Failure[]): string {
+  const gmail = failures.find((f) => f.channel === "gmail");
+  const resend = failures.find((f) => f.channel === "resend");
+  const gmailReady = gmailCredentials().ready;
+  const resendReady = resendCredentials().ready;
+
+  if (!gmailReady && !resendReady) {
+    return (
+      "No email sender is configured on this deployment" +
+      (gmail ? ` (${gmail.reason})` : "") +
+      ". Set GMAIL_USER + GMAIL_APP_PASSWORD (or RESEND_API_KEY) for the Production environment, then redeploy."
+    );
+  }
+  if (gmail) {
+    return `Gmail rejected the order email: ${gmail.reason}`;
+  }
+  if (resend) {
+    return `The email provider rejected the order email: ${resend.reason}`;
+  }
+  return "Could not send the order email. Please try again.";
+}
+
+/**
+ * Status check: `GET /api/orders` reports what is configured; add `?test=1`
+ * to attempt a real send so the deployment explains itself.
+ */
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const configured = serverMailConfigured();
+
+  const report: Record<string, unknown> = {
+    ok: configured,
+    gmail: gmailCredentials().ready,
+    resend: resendCredentials().ready,
+    gmailConfig: describeGmailConfig(),
     notifyTo: STORE_EMAILS,
     from: process.env.ORDER_FROM_EMAIL?.trim() || null,
-    hint:
-      gmail || resend
-        ? "Authenticated sender configured. POST { \"test\": true } to send a test email."
-        : "No authenticated sender configured — set GMAIL_USER + GMAIL_APP_PASSWORD or RESEND_API_KEY in the host environment, then redeploy.",
-  });
+    deploymentBranch: process.env.VERCEL_GIT_COMMIT_REF || null,
+    deploymentCommit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || null,
+    hint: configured
+      ? "A sender is configured. Add ?test=1 to this URL to send a test email."
+      : "No sender configured for this deployment — set GMAIL_USER + GMAIL_APP_PASSWORD (or RESEND_API_KEY) under Production, then redeploy.",
+  };
+
+  if (url.searchParams.get("test") === "1") {
+    report.test = await runTestSend();
+  }
+  return NextResponse.json(report);
+}
+
+/** Sends a diagnostic email and reports the exact outcome per channel. */
+async function runTestSend() {
+  const subject = "Test email — Allied Book Co. order notifications";
+  const text = [
+    "This is a test of the order-notification email channel.",
+    "",
+    `Time: ${new Date().toISOString()}`,
+    `Recipients: ${STORE_EMAILS.join(", ")}`,
+    "",
+    "If you can read this, real customer orders will arrive at this inbox.",
+  ].join("\n");
+  try {
+    const { via } = await sendOrderMail(subject, text, STORE_EMAILS[0], {
+      name: "Allied Book Co.",
+      email: STORE_EMAILS[0],
+      line1: "—",
+      city: "—",
+      region: "—",
+      postal: "—",
+      country: "—",
+    });
+    return { ok: true, via, notifyTo: STORE_EMAILS };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Test email failed",
+      failures: (e as { failures?: Failure[] })?.failures ?? [],
+      notifyTo: STORE_EMAILS,
+      gmailConfig: describeGmailConfig(),
+    };
+  }
 }
 
 export async function POST(request: Request) {
@@ -273,49 +407,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  // `{ "test": true }` sends a diagnostic email so the live deployment can be
-  // verified from outside (GET /api/orders tells you what is configured).
+  // `{ "test": true }` kept for backwards compatibility — same as GET ?test=1.
   if (body?.test === true) {
-    const subject = "Test email — Allied Book Co. order notifications";
-    const text = [
-      "This is a test of the order-notification email channel.",
-      "",
-      `Time: ${new Date().toISOString()}`,
-      `Recipients: ${STORE_EMAILS.join(", ")}`,
-      "",
-      "If you can read this, real customer orders will arrive at this inbox.",
-    ].join("\n");
-    try {
-      const { via } = await sendOrderMail(subject, text, STORE_EMAILS[0], {
-        name: "Allied Book Co.",
-        email: STORE_EMAILS[0],
-        line1: "—",
-        city: "—",
-        region: "—",
-        postal: "—",
-        country: "—",
-      });
-      return NextResponse.json({
-        ok: true,
-        via,
-        notifyTo: STORE_EMAILS,
-        warning:
-          via === "formsubmit"
-            ? "No authenticated sender configured; used the free FormSubmit relay (needs activation, may be delayed or blocked)."
-            : undefined,
-      });
-    } catch (e) {
-      console.error(e);
-      return NextResponse.json(
-        {
-          ok: false,
-          error: e instanceof Error ? e.message : "Test email failed",
-          notifyTo: STORE_EMAILS,
-          serverMailConfigured: serverMailConfigured(),
-        },
-        { status: 502 }
-      );
-    }
+    const result = await runTestSend();
+    return NextResponse.json(result, { status: result.ok ? 200 : 502 });
   }
 
   if (!body?.items?.length || !body.shipping?.email || !body.shipping?.name) {
@@ -346,6 +441,7 @@ export async function POST(request: Request) {
           e instanceof Error
             ? e.message
             : "Could not send the order email. Please try again.",
+        failures: (e as { failures?: Failure[] })?.failures ?? [],
       },
       { status: 502 }
     );
