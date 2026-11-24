@@ -16,9 +16,11 @@ type Props = {
   className?: string;
 };
 
-// Book cards are 180px wide; the extra 6px covers the 3D page-edge layers, and
-// gap-4 adds 16px between cards — keep in sync with CatalogCard.
-const CARD_STEP = 196;
+// Desktop shows exactly 5 cards per row. Cards are sized from the container
+// (`calc((100% - 64px)/5 - 6px)`, see CatalogCard) so a 6th can never peek in.
+const DESKTOP_PER_PAGE = 5;
+// Below md the card is a fixed 186px and the row scrolls horizontally.
+const MOBILE_CARD_STEP = 202; // 186px card + 16px gap
 
 export function BookCarousel({
   id,
@@ -33,12 +35,18 @@ export function BookCarousel({
   const [pageCount, setPageCount] = useState(1);
   const [paused, setPaused] = useState(false);
 
+  /** Cards fully visible in the current layout. */
+  const perPage = useCallback(() => {
+    if (typeof window === "undefined") return DESKTOP_PER_PAGE;
+    // md breakpoint (768px) and up → the fixed 5-up grid
+    return window.matchMedia("(min-width: 768px)").matches
+      ? DESKTOP_PER_PAGE
+      : Math.max(1, Math.floor((scrollerRef.current?.clientWidth ?? 0) / MOBILE_CARD_STEP));
+  }, []);
+
   const measure = useCallback(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const visible = Math.max(1, Math.floor(el.clientWidth / CARD_STEP));
-    setPageCount(Math.max(1, Math.ceil(books.length / visible)));
-  }, [books.length]);
+    setPageCount(Math.max(1, Math.ceil(books.length / perPage())));
+  }, [books.length, perPage]);
 
   useEffect(() => {
     measure();
@@ -46,41 +54,50 @@ export function BookCarousel({
     return () => window.removeEventListener("resize", measure);
   }, [measure]);
 
-  const scrollToPage = useCallback((next: number) => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const visible = Math.max(1, Math.floor(el.clientWidth / CARD_STEP));
-    const maxPage = Math.max(0, Math.ceil(books.length / visible) - 1);
-    const clamped = ((next % (maxPage + 1)) + (maxPage + 1)) % (maxPage + 1);
-    setPage(clamped);
-    el.scrollTo({
-      left: clamped * visible * CARD_STEP,
-      behavior: "smooth",
-    });
-  }, [books.length]);
+  const scrollToPage = useCallback(
+    (next: number) => {
+      const el = scrollerRef.current;
+      if (!el) return;
+      const visible = perPage();
+      const maxPage = Math.max(0, Math.ceil(books.length / visible) - 1);
+      const clamped = ((next % (maxPage + 1)) + (maxPage + 1)) % (maxPage + 1);
+      setPage(clamped);
+
+      if (visible === DESKTOP_PER_PAGE) {
+        // One card per step, measured from the real DOM so the 5-up grid and
+        // its paging can never drift apart.
+        const cards = el.querySelectorAll<HTMLElement>("article");
+        const first = cards[0];
+        const target = cards[clamped * visible] ?? cards[cards.length - 1];
+        if (first && target) {
+          el.scrollTo({
+            left: target.offsetLeft - first.offsetLeft,
+            behavior: "smooth",
+          });
+          return;
+        }
+      }
+      el.scrollTo({ left: clamped * visible * MOBILE_CARD_STEP, behavior: "smooth" });
+    },
+    [books.length, perPage]
+  );
 
   useEffect(() => {
     if (!autoPlay || paused || pageCount <= 1) return;
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     if (mq.matches) return;
 
-    const id = window.setInterval(() => {
+    const timer = window.setInterval(() => {
+      // Reuse the same paging routine so autoplay can never drift from it.
       setPage((p) => {
         const next = (p + 1) % pageCount;
-        const el = scrollerRef.current;
-        if (el) {
-          const visible = Math.max(1, Math.floor(el.clientWidth / CARD_STEP));
-          el.scrollTo({
-            left: next * visible * CARD_STEP,
-            behavior: "smooth",
-          });
-        }
+        scrollToPage(next);
         return next;
       });
     }, 4200);
 
-    return () => window.clearInterval(id);
-  }, [autoPlay, paused, pageCount]);
+    return () => window.clearInterval(timer);
+  }, [autoPlay, paused, pageCount, scrollToPage]);
 
   if (books.length === 0) return null;
 
@@ -121,13 +138,17 @@ export function BookCarousel({
             ›
           </button>
 
-          <div
-            ref={scrollerRef}
-            className="flex gap-4 overflow-x-auto scroll-smooth px-3 pb-4 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            {books.map((book) => (
-              <CatalogCard key={book.id} book={book} />
-            ))}
+          {/* Negative margin gives the 3D shadow room without shrinking the
+              row, so exactly 5 cards fit inside the container at desktop. */}
+          <div className="-mx-3 px-0">
+            <div
+              ref={scrollerRef}
+              className="flex gap-[22px] overflow-x-auto scroll-smooth px-3 pb-4 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {books.map((book) => (
+                <CatalogCard key={book.id} book={book} />
+              ))}
+            </div>
           </div>
         </div>
 

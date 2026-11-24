@@ -75,6 +75,23 @@
   }
 
   /*
+   * Homepage / carousel card width.
+   * Desktop shows exactly FIVE cards per row, with no sliver of a sixth.
+   * The five columns fill the row completely: 4 gaps of 22px (88px) are split
+   * as 16px visual gap + 6px head-room for the 3D page-edge layers, so the cards
+   * themselves use the full remaining width.
+   */
+  .book-card {
+    width: 186px;
+  }
+
+  @media (min-width: 768px) {
+    .book-card {
+      width: calc((100% - 88px) / 5);
+    }
+  }
+
+  /*
    * 3D book treatment — the cover reads as a real closed book lying on a
    * surface: page block on the right, spine seam on the left, drop shadow
    * following the spine. Pure CSS (no images), so it scales to any card size.

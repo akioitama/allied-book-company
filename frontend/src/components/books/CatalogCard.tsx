@@ -26,7 +26,12 @@ export function CatalogCard({ book, className }: Props) {
 
   return (
     <article
-      className={cn("group flex w-[186px] shrink-0 flex-col", className)}
+      className={cn(
+        // Width comes from `.book-card` (globals.css): exactly 5 per row on
+        // desktop, fixed 186px + horizontal scroll below md.
+        "book-card group flex shrink-0 flex-col",
+        className
+      )}
     >
       <Link
         href={`/shop/${book.slug}`}
