@@ -101,6 +101,27 @@ Diagnose a deployment (no dashboard access needed):
 
 If no sender is configured, checkout shows an error instead of a false "order confirmed",
 so orders are never silently lost.
+## Stock
+
+Placing an order reduces `books.stock` for every **physical** title (e-books hold no
+stock). This happens in `POST /api/orders` via `decrementStockForOrder()`
+(`frontend/src/lib/books/stock.ts`), and the result is printed in the order email
+(`Stock updated · <title>: −1 → 4 left`).
+
+Stock cannot be written directly from the storefront: `books` has only a SELECT policy
+(`supabase/schema.sql`), so a plain `UPDATE` with the anon key is silently ignored. The
+write goes through an atomic `SECURITY DEFINER` function instead:
+
+```sql
+-- Run once in Supabase → SQL Editor (also required before stock starts updating)
+-- supabase/migrations/004_decrement_book_stock.sql
+select * from public.decrement_book_stock('<book-uuid>', 1);  -- smoke test
+```
+
+The function validates the quantity (1–1000), never lets stock fall below zero, and is
+the same one used by the FastAPI backend (`order_service.py`) so both paths stay atomic.
+Optional: set `SUPABASE_SERVICE_ROLE_KEY` in Vercel to bypass RLS entirely.
+
 ## E-books (Books for school)
 
 Books whose ISBN is in `SCHOOL_BOOK_ISBNS` (`frontend/src/lib/shipping.ts`, re-exported by

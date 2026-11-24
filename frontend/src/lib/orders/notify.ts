@@ -16,6 +16,8 @@ export type OrderNotifyPayload = {
     price_cents: number;
     /** Digital product — no delivery, and the order must be paid upfront. */
     is_ebook?: boolean;
+    /** Book row id — lets the server decrement that book's stock. */
+    book_id?: string | null;
     /** Sent so the server can verify e-book status itself. */
     isbn?: string | null;
   }>;

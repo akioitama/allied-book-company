@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { formatPrice } from "@/lib/utils";
 import { cartPricing, isEbookIsbn } from "@/lib/shipping";
+import { decrementStockForOrder } from "@/lib/books/stock";
 
 export const runtime = "nodejs";
 
@@ -10,6 +11,8 @@ type OrderItem = {
   author?: string;
   quantity: number;
   price_cents: number;
+  /** Book id — used to decrement stock. */
+  book_id?: string | null;
   /** Digital product — no delivery, upfront payment only. */
   is_ebook?: boolean;
   /** Used to detect e-books server-side (client flag is not trusted alone). */
@@ -48,7 +51,17 @@ const STORE_EMAILS = STORE_EMAIL.split(",")
   .map((e) => e.trim())
   .filter(Boolean);
 
-function buildOrderText(body: OrderBody): string {
+/**
+ * `stock` is optional: when present, the email shows the new stock per title so
+ * the store can immediately see the inventory change.
+ */
+function buildOrderText(
+  body: OrderBody,
+  stock?: {
+    applied: { book_id: string; quantity: number; new_stock: number }[];
+    warning?: string;
+  }
+): string {
   const lines: string[] = [
     "New order — Allied Book Co.",
     "",
@@ -101,10 +114,26 @@ function buildOrderText(body: OrderBody): string {
     `Total: ${formatPrice(body.total_cents)}`,
     `Payment method: ${paymentLabel(
       hasEbooks ? "upfront" : body.payment_method
-    )}${hasEbooks ? " (required — order contains an e-book)" : ""}`,
-    "",
-    "Please contact the customer to confirm payment / delivery."
+    )}${hasEbooks ? " (required — order contains an e-book)" : ""}`
   );
+
+  // Inventory result so the team can see stock actually moved.
+  if (stock?.applied?.length) {
+    lines.push("", "Stock updated");
+    for (const entry of stock.applied) {
+      const item = body.items.find(
+        (i) => i.book_id === entry.book_id
+      );
+      lines.push(
+        `  • ${item?.title ?? entry.book_id}: −${entry.quantity} → ${entry.new_stock} left`
+      );
+    }
+  }
+  if (stock?.warning) {
+    lines.push("", `⚠ ${stock.warning}`);
+  }
+
+  lines.push("", "Please contact the customer to confirm payment / delivery.");
 
   return lines.join("\n");
 }
@@ -468,7 +497,20 @@ export async function POST(request: Request) {
     payment_method:
       pricing.payment === "upfront" ? "upfront" : body.payment_method,
   };
-  const text = buildOrderText(orderBody);
+
+  // Reduce stock for physical titles. Failures are reported, never silent —
+  // and never block the order email (the order itself is still valid).
+  const stock = await decrementStockForOrder(
+    items.map((i) => ({
+      book_id: i.book_id ?? null,
+      isbn: i.isbn ?? null,
+      quantity: i.quantity,
+      is_ebook: i.is_ebook,
+    }))
+  );
+  if (stock.warning) console.error("Stock update problem:", stock.warning);
+
+  const text = buildOrderText(orderBody, stock);
   const replyTo = body.shipping.email;
 
   try {
@@ -479,7 +521,14 @@ export async function POST(request: Request) {
       body.shipping,
       orderBody.payment_method
     );
-    return NextResponse.json({ ok: true, via });
+    return NextResponse.json({
+      ok: true,
+      via,
+      stock: {
+        updated: stock.applied,
+        warning: stock.warning ?? null,
+      },
+    });
   } catch (e) {
     console.error(e);
     return NextResponse.json(

@@ -81,18 +81,11 @@ def create_order(
                 "price_cents": line["price_cents"],
             }
         ).execute()
-        # Decrement stock
-        book = (
-            supabase.table("books")
-            .select("stock")
-            .eq("id", line["book_id"])
-            .limit(1)
-            .execute()
-        )
-        if book.data:
-            new_stock = max(0, int(book.data[0]["stock"]) - int(line["quantity"]))
-            supabase.table("books").update({"stock": new_stock}).eq(
-                "id", line["book_id"]
-            ).execute()
+        # Atomic stock decrement (avoids the read-then-write race where two
+        # simultaneous orders overwrite each other).
+        supabase.rpc(
+            "decrement_book_stock",
+            {"p_book_id": line["book_id"], "p_quantity": int(line["quantity"])},
+        ).execute()
 
     return {**order_row, "items": lines}

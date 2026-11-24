@@ -74,6 +74,7 @@ export default function CheckoutPage() {
         price_cents: i.price_cents,
         is_ebook: isEbookItem(i),
         isbn: i.isbn ?? null,
+        book_id: i.bookId,
       })),
       shipping: form,
       payment_method: paymentMethod,
