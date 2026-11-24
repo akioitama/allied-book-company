@@ -1,6 +1,19 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Book, CartItem } from "@/types";
+import { isEbook } from "@/lib/data/school-books";
+
+/**
+ * True for digital items. Prefers the flag snapshotted at add-to-cart, and
+ * falls back to the ISBN so carts persisted *before* this feature (which have
+ * no flag) are still priced correctly.
+ */
+export function isEbookItem(item: {
+  isbn?: string | null;
+  is_ebook?: boolean;
+}): boolean {
+  return item.is_ebook ?? isEbook(item.isbn);
+}
 
 type CartState = {
   items: CartItem[];
@@ -39,6 +52,9 @@ export const useCartStore = create<CartState>()(
                 price_cents: book.price_cents,
                 cover_image_url: book.cover_image_url,
                 quantity,
+                isbn: book.isbn ?? null,
+                // Snapshot the digital flag at add time.
+                is_ebook: isEbook(book.isbn),
               },
             ],
           };

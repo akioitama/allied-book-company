@@ -49,6 +49,10 @@ export type CartItem = {
   price_cents: number;
   cover_image_url: string | null;
   quantity: number;
+  /** Needed to identify e-books (digital: no delivery, upfront only). */
+  isbn?: string | null;
+  /** Snapshotted at add-to-cart so pricing never depends on a later lookup. */
+  is_ebook?: boolean;
 };
 
 export type OrderStatus =

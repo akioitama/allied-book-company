@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { formatPrice } from "@/lib/utils";
+import { cartPricing, isEbookIsbn } from "@/lib/shipping";
 
 export const runtime = "nodejs";
 
@@ -9,6 +10,10 @@ type OrderItem = {
   author?: string;
   quantity: number;
   price_cents: number;
+  /** Digital product — no delivery, upfront payment only. */
+  is_ebook?: boolean;
+  /** Used to detect e-books server-side (client flag is not trusted alone). */
+  isbn?: string | null;
 };
 
 type OrderBody = {
@@ -68,7 +73,9 @@ function buildOrderText(body: OrderBody): string {
     const lineTotal = formatPrice(item.price_cents * item.quantity);
     const unit = formatPrice(item.price_cents);
     lines.push(
-      `  • ${item.title}${item.author ? ` — ${item.author}` : ""}`,
+      `  • ${item.title}${item.author ? ` — ${item.author}` : ""}${
+        item.is_ebook ? "  (E-BOOK — no delivery)" : ""
+      }`,
       `      Qty ${item.quantity} × ${unit} = ${lineTotal}`
     );
   }
@@ -78,13 +85,23 @@ function buildOrderText(body: OrderBody): string {
       ? body.subtotal_cents
       : body.total_cents - (body.delivery_cents ?? 0);
   const delivery = body.delivery_cents ?? 0;
+  const hasEbooks = body.items.some((i) => i.is_ebook);
+  const hasPhysical = body.items.some((i) => !i.is_ebook);
+  const deliveryLine =
+    delivery > 0
+      ? `${formatPrice(delivery)}${hasEbooks ? " (physical items only)" : ""}`
+      : hasEbooks && !hasPhysical
+        ? "Not applicable — all items are e-books"
+        : "Free";
 
   lines.push(
     "",
     `Subtotal: ${formatPrice(subtotal)}`,
-    `Delivery: ${delivery > 0 ? formatPrice(delivery) : "Free"}`,
+    `Delivery: ${deliveryLine}`,
     `Total: ${formatPrice(body.total_cents)}`,
-    `Payment method: ${paymentLabel(body.payment_method)}`,
+    `Payment method: ${paymentLabel(
+      hasEbooks ? "upfront" : body.payment_method
+    )}${hasEbooks ? " (required — order contains an e-book)" : ""}`,
     "",
     "Please contact the customer to confirm payment / delivery."
   );
@@ -421,7 +438,37 @@ export async function POST(request: Request) {
   }
 
   const subject = `New order from ${body.shipping.name} — Allied Book Co.`;
-  const text = buildOrderText(body);
+  // Recompute from the items — never trust the client's payment choice or fee.
+  const items = body.items.map((item) => ({
+    ...item,
+    is_ebook: Boolean(item.is_ebook) || isEbookIsbn(item.isbn),
+  }));
+  const pricing = cartPricing(
+    items.map((i) => ({
+      price_cents: i.price_cents,
+      quantity: i.quantity,
+      is_ebook: i.is_ebook,
+    }))
+  );
+  if (pricing.payment === "upfront" && body.payment_method === "cash_on_delivery") {
+    console.error("Order rejected: e-book with cash on delivery");
+    return NextResponse.json(
+      {
+        error:
+          "Orders containing an e-book must be paid upfront. Please choose Upfront and try again.",
+      },
+      { status: 400 }
+    );
+  }
+  const orderBody: OrderBody = {
+    ...body,
+    items,
+    delivery_cents: pricing.deliveryCents,
+    total_cents: pricing.totalCents,
+    payment_method:
+      pricing.payment === "upfront" ? "upfront" : body.payment_method,
+  };
+  const text = buildOrderText(orderBody);
   const replyTo = body.shipping.email;
 
   try {
@@ -430,7 +477,7 @@ export async function POST(request: Request) {
       text,
       replyTo,
       body.shipping,
-      body.payment_method
+      orderBody.payment_method
     );
     return NextResponse.json({ ok: true, via });
   } catch (e) {

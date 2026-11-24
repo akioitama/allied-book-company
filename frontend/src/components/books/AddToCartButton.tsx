@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Book } from "@/types";
 import { resolveOurPrice } from "@/lib/books/pricing";
+import { isEbook } from "@/lib/data/school-books";
 import { useCartStore } from "@/lib/store/cart";
 import { cn } from "@/lib/utils";
 
@@ -124,6 +125,12 @@ export function AddToCartButton({
               ? `Add more (${inCart.quantity} in cart)`
               : "Add to cart"}
       </button>
+
+      {isEbook(book.isbn) && (
+        <span className="font-label text-[0.58rem] uppercase tracking-[0.14em] text-forest">
+          E-book · no delivery
+        </span>
+      )}
     </div>
   );
 }

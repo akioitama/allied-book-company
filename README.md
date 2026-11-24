@@ -101,7 +101,23 @@ Diagnose a deployment (no dashboard access needed):
 
 If no sender is configured, checkout shows an error instead of a false "order confirmed",
 so orders are never silently lost.
+## E-books (Books for school)
 
+Books whose ISBN is in `SCHOOL_BOOK_ISBNS` (`frontend/src/lib/shipping.ts`, re-exported by
+`frontend/src/lib/data/school-books.ts`) are sold as **e-books**. The rules live in one
+place — `cartPricing()` in `frontend/src/lib/shipping.ts` — and are enforced again
+server-side in `POST /api/orders`:
+
+| Cart | Delivery | Payment |
+|---|---|---|
+| E-books only | **Free** — no delivery charge | **Upfront only** (cash on delivery is hidden) |
+| Physical only | Rs 350 if under Rs 8,000, else free | Cash on delivery or upfront |
+| E-book **+** physical | Rs 350 when the **combined** subtotal is under Rs 8,000, else free | **Upfront only** |
+
+To make another book an e-book, add its ISBN (digits only) to `SCHOOL_BOOK_ISBNS`.
+Unknown/missing ISBNs are treated as physical, so delivery is never given away by accident.
+
+## Routes
 
 | Route | Purpose |
 |---|---|

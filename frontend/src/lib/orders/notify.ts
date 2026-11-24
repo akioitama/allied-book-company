@@ -14,6 +14,10 @@ export type OrderNotifyPayload = {
     author?: string;
     quantity: number;
     price_cents: number;
+    /** Digital product — no delivery, and the order must be paid upfront. */
+    is_ebook?: boolean;
+    /** Sent so the server can verify e-book status itself. */
+    isbn?: string | null;
   }>;
   shipping: {
     name: string;
@@ -35,6 +39,11 @@ function paymentLabel(method?: string) {
   if (method === "upfront") return "Upfront";
   if (method === "cash_on_delivery") return "Cash on delivery";
   return method?.trim() || "Not specified";
+}
+
+/** Any e-book in the order forces upfront payment. */
+export function orderHasEbooks(body: OrderNotifyPayload): boolean {
+  return body.items.some((i) => i.is_ebook);
 }
 
 export function buildOrderText(body: OrderNotifyPayload): string {
@@ -62,19 +71,28 @@ export function buildOrderText(body: OrderNotifyPayload): string {
     const lineTotal = formatPrice(item.price_cents * item.quantity);
     const unit = formatPrice(item.price_cents);
     lines.push(
-      `  • ${item.title}${item.author ? ` — ${item.author}` : ""}`,
+      `  • ${item.title}${item.author ? ` — ${item.author}` : ""}${
+        item.is_ebook ? "  (E-BOOK — no delivery)" : ""
+      }`,
       `      Qty ${item.quantity} × ${unit} = ${lineTotal}`
     );
   }
 
+  const hasEbooks = orderHasEbooks(body);
+  const deliveryLine = body.delivery_cents > 0
+    ? `${formatPrice(body.delivery_cents)}${hasEbooks ? " (physical items only)" : ""}`
+    : hasEbooks && !body.items.some((i) => !i.is_ebook)
+      ? "Not applicable — all items are e-books"
+      : "Free";
+
   lines.push(
     "",
     `Subtotal: ${formatPrice(body.subtotal_cents)}`,
-    `Delivery: ${
-      body.delivery_cents > 0 ? formatPrice(body.delivery_cents) : "Free"
-    }`,
+    `Delivery: ${deliveryLine}`,
     `Total: ${formatPrice(body.total_cents)}`,
-    `Payment method: ${paymentLabel(body.payment_method)}`,
+    `Payment method: ${paymentLabel(
+      hasEbooks ? "upfront" : body.payment_method
+    )}${hasEbooks ? " (required — order contains an e-book)" : ""}`,
     "",
     "Please contact the customer to confirm payment / delivery."
   );

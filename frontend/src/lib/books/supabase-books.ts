@@ -3,6 +3,7 @@ import { createClient, createPublicClient } from "@/lib/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { upgradeCoverUrl } from "@/lib/books/covers";
 import { SITEWIDE_DISCOUNT_PERCENT } from "@/lib/books/pricing";
+import { SCHOOL_BOOK_ISBNS } from "@/lib/data/school-books";
 
 export type BookRow = {
   id: string;
@@ -458,23 +459,7 @@ export async function getRelatedBooks(
 }
 
 /** Pearson Edexcel IGCSE titles featured on the home “Books for school” shelf. */
-export const SCHOOL_BOOK_ISBNS = [
-  "9781292368450",
-  "9781292368467",
-  "9781292764375",
-  "9781292496993",
-  "9781292764368",
-  "9781292496719",
-  "9781292368658",
-  "9781292496900",
-  "9781292370101",
-  "9781292496726",
-  "9781292496641",
-  "9781292496665",
-  "9781292394923",
-  "9781292394916",
-  "9781292394909",
-] as const;
+export { SCHOOL_BOOK_ISBNS } from "@/lib/data/school-books";
 
 /** Fetch books by ISBN list, preserving the requested order. */
 export async function getBooksByIsbns(

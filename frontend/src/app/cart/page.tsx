@@ -5,18 +5,24 @@ import { BookCover } from "@/components/books/BookCover";
 import { coverSourcesForBook } from "@/lib/books/covers";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatPrice } from "@/lib/utils";
-import { deliveryFeeCents, orderTotalCents } from "@/lib/shipping";
-import { useCartStore } from "@/lib/store/cart";
+import { cartPricing } from "@/lib/shipping";
+import { isEbookItem, useCartStore } from "@/lib/store/cart";
 
 export default function CartPage() {
   const items = useCartStore((s) => s.items);
   const setQuantity = useCartStore((s) => s.setQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
-  const totalCents = useCartStore((s) => s.totalCents);
   const count = items.reduce((n, i) => n + i.quantity, 0);
-  const subtotal = totalCents();
-  const delivery = deliveryFeeCents(subtotal);
-  const grandTotal = orderTotalCents(subtotal);
+  const pricing = cartPricing(
+    items.map((i) => ({
+      price_cents: i.price_cents,
+      quantity: i.quantity,
+      is_ebook: isEbookItem(i),
+    }))
+  );
+  const subtotal = pricing.subtotalCents;
+  const delivery = pricing.deliveryCents;
+  const grandTotal = pricing.totalCents;
 
   if (items.length === 0) {
     return (
@@ -74,6 +80,11 @@ export default function CartPage() {
                   <p className="text-ink-soft">{item.author}</p>
                   <p className="mt-1 font-body text-sm text-ink-soft">
                     {formatPrice(item.price_cents)} each
+                    {isEbookItem(item) ? (
+                      <span className="ml-2 font-label text-[0.58rem] uppercase tracking-[0.14em] text-forest">
+                        E-book · no delivery
+                      </span>
+                    ) : null}
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-3">
                     <div className="flex items-center border border-brass/50">
@@ -137,10 +148,13 @@ export default function CartPage() {
             {formatPrice(grandTotal)}
           </p>
           <p className="mt-2 font-body text-sm text-ink-soft">
-            {delivery > 0
-              ? "Rs 350 delivery on orders under Rs 8,000."
-              : "Free delivery on orders of Rs 8,000 or more."}
+            {pricing.deliveryNote}
           </p>
+          {pricing.payment === "upfront" ? (
+            <p className="mt-2 font-body text-sm text-ink-soft">
+              This cart includes an e-book, so payment will be upfront only.
+            </p>
+          ) : null}
           <Link
             href="/checkout"
             prefetch={false}

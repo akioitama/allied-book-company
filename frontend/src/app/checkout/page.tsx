@@ -5,9 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatPrice, cn } from "@/lib/utils";
-import { deliveryFeeCents, orderTotalCents } from "@/lib/shipping";
+import { cartPricing } from "@/lib/shipping";
 import { sendOrderEmail } from "@/lib/orders/notify";
-import { useCartStore } from "@/lib/store/cart";
+import { isEbookItem, useCartStore } from "@/lib/store/cart";
 
 const steps = [
   { id: 1, label: "Shipping" },
@@ -18,7 +18,6 @@ const steps = [
 export default function CheckoutPage() {
   const router = useRouter();
   const items = useCartStore((s) => s.items);
-  const totalCents = useCartStore((s) => s.totalCents);
   const clear = useCartStore((s) => s.clear);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -33,13 +32,24 @@ export default function CheckoutPage() {
     email: "",
     phone: "",
   });
-  const [paymentMethod, setPaymentMethod] = useState<
+  const [chosenPayment, setChosenPayment] = useState<
     "cash_on_delivery" | "upfront"
   >("cash_on_delivery");
 
-  const subtotal = totalCents();
-  const delivery = deliveryFeeCents(subtotal);
-  const grandTotal = orderTotalCents(subtotal);
+  // E-books force upfront payment; the choice is made on derived state so a
+  // previously selected "cash on delivery" can never survive an e-book.
+  const pricing = cartPricing(
+    items.map((i) => ({
+      price_cents: i.price_cents,
+      quantity: i.quantity,
+      is_ebook: isEbookItem(i),
+    }))
+  );
+  const upfrontOnly = pricing.payment === "upfront";
+  const paymentMethod = upfrontOnly ? "upfront" : chosenPayment;
+  const subtotal = pricing.subtotalCents;
+  const delivery = pricing.deliveryCents;
+  const grandTotal = pricing.totalCents;
 
   if (items.length === 0) {
     return (
@@ -62,6 +72,8 @@ export default function CheckoutPage() {
         author: i.author,
         quantity: i.quantity,
         price_cents: i.price_cents,
+        is_ebook: isEbookItem(i),
+        isbn: i.isbn ?? null,
       })),
       shipping: form,
       payment_method: paymentMethod,
@@ -170,19 +182,27 @@ export default function CheckoutPage() {
       {step === 2 && (
         <div className="map-panel mt-8 p-6">
           <ul className="space-y-3">
-            {items.map((item) => (
-              <li
-                key={item.bookId}
-                className="flex justify-between gap-4 border-b border-brass/25 pb-3"
-              >
-                <span className="font-body">
-                  {item.title} × {item.quantity}
-                </span>
-                <span className="font-display">
-                  {formatPrice(item.price_cents * item.quantity)}
-                </span>
-              </li>
-            ))}
+            {items.map((item) => {
+              const ebook = isEbookItem(item);
+              return (
+                <li
+                  key={item.bookId}
+                  className="flex justify-between gap-4 border-b border-brass/25 pb-3"
+                >
+                  <span className="font-body">
+                    {item.title} × {item.quantity}
+                    {ebook ? (
+                      <span className="ml-2 font-label text-[0.58rem] uppercase tracking-[0.14em] text-forest">
+                        E-book
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="font-display">
+                    {formatPrice(item.price_cents * item.quantity)}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
           <div className="mt-6 space-y-2 font-body text-ink-soft">
             <div className="flex justify-between">
@@ -198,9 +218,10 @@ export default function CheckoutPage() {
             <span>Total</span>
             <span>{formatPrice(grandTotal)}</span>
           </p>
-          {delivery > 0 ? (
+          <p className="mt-2 font-body text-sm text-ink-soft">{pricing.deliveryNote}</p>
+          {upfrontOnly ? (
             <p className="mt-2 font-body text-sm text-ink-soft">
-              Rs 350 delivery applies to orders under Rs 8,000.
+              This order includes an e-book, so it must be paid upfront.
             </p>
           ) : null}
           <div className="mt-6 flex flex-wrap gap-3">
@@ -226,30 +247,32 @@ export default function CheckoutPage() {
         <div className="map-panel mt-8 p-6">
           <p className="eyebrow">Payment method</p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <label
-              className={cn(
-                "flex cursor-pointer items-start gap-3 border px-4 py-3 transition",
-                paymentMethod === "cash_on_delivery"
-                  ? "border-oxblood bg-oxblood/5"
-                  : "border-brass/40 hover:border-oxblood/50"
-              )}
-            >
-              <input
-                type="radio"
-                name="payment"
-                className="mt-1"
-                checked={paymentMethod === "cash_on_delivery"}
-                onChange={() => setPaymentMethod("cash_on_delivery")}
-              />
-              <span>
-                <span className="block font-display text-lg text-ink">
-                  Cash on delivery
+            {!upfrontOnly && (
+              <label
+                className={cn(
+                  "flex cursor-pointer items-start gap-3 border px-4 py-3 transition",
+                  paymentMethod === "cash_on_delivery"
+                    ? "border-oxblood bg-oxblood/5"
+                    : "border-brass/40 hover:border-oxblood/50"
+                )}
+              >
+                <input
+                  type="radio"
+                  name="payment"
+                  className="mt-1"
+                  checked={paymentMethod === "cash_on_delivery"}
+                  onChange={() => setChosenPayment("cash_on_delivery")}
+                />
+                <span>
+                  <span className="block font-display text-lg text-ink">
+                    Cash on delivery
+                  </span>
+                  <span className="mt-0.5 block font-body text-sm text-ink-soft">
+                    Pay when your order arrives
+                  </span>
                 </span>
-                <span className="mt-0.5 block font-body text-sm text-ink-soft">
-                  Pay when your order arrives
-                </span>
-              </span>
-            </label>
+              </label>
+            )}
             <label
               className={cn(
                 "flex cursor-pointer items-start gap-3 border px-4 py-3 transition",
@@ -263,7 +286,7 @@ export default function CheckoutPage() {
                 name="payment"
                 className="mt-1"
                 checked={paymentMethod === "upfront"}
-                onChange={() => setPaymentMethod("upfront")}
+                onChange={() => setChosenPayment("upfront")}
               />
               <span>
                 <span className="block font-display text-lg text-ink">
@@ -275,6 +298,13 @@ export default function CheckoutPage() {
               </span>
             </label>
           </div>
+
+          {upfrontOnly ? (
+            <p className="mt-4 border border-forest/40 bg-forest/5 px-3 py-2 font-body text-sm text-ink">
+              This order includes an e-book, so it must be paid upfront — cash on
+              delivery is not available.
+            </p>
+          ) : null}
 
           <p className="mt-6 font-body text-lg leading-relaxed text-ink-soft">
             Your order will be placed and our team will contact you for further
