@@ -16,7 +16,8 @@ type Props = {
   className?: string;
 };
 
-const CARD_STEP = 176; // approximate card width + gap
+// CatalogCard is 180px wide + 16px gap (gap-4) — keep in sync with the card.
+const CARD_STEP = 196;
 
 export function BookCarousel({
   id,

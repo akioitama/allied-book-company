@@ -25,18 +25,20 @@ export function CatalogCard({ book, className }: Props) {
   });
 
   return (
-    <article className={cn("flex w-[148px] shrink-0 flex-col sm:w-[160px]", className)}>
+    <article
+      className={cn("flex w-[180px] shrink-0 flex-col", className)}
+    >
       <Link
         href={`/shop/${book.slug}`}
         prefetch={false}
-        className="relative block aspect-[2/3] overflow-hidden border border-brass/50 bg-parchment-deep"
+        className="relative block h-[240px] overflow-hidden border border-brass/50 bg-parchment-deep"
       >
         <BookCover
           src={primary}
           fallbackSrcs={fallbacks}
           alt={`Cover of ${book.title}`}
           title={book.title}
-          sizes="160px"
+          sizes="180px"
           imageClassName="transition duration-500 hover:scale-[1.03]"
         />
         {discount > 0 && (
