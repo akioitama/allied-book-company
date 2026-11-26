@@ -46,7 +46,7 @@ export type OrderNotifyPayload = {
     country: string;
   };
   payment_method: "cash_on_delivery" | "upfront" | string;
-  /** Payee account the customer used: `jazzcash_easypaisa` or `bank_transfer`. */
+  /** Payee account the customer used: `jazzcash`, `easypaisa` or `ubl_bank_transfer`. */
   payment_account?: string | null;
   /** Order number; the server generates one when it is missing. */
   order_number?: string | null;
@@ -131,8 +131,11 @@ export function buildOrderText(body: OrderNotifyPayload): string {
     )}${hasEbooks ? " (required — order contains an e-book)" : ""}`
   );
 
-  if (body.screenshot) {
-    lines.push(`Payment screenshot: ${body.screenshot.name} (attached)`);
+  if ((hasEbooks || body.payment_method === "upfront") && body.screenshot) {
+    // FormSubmit relays the file; the API route attaches it directly.
+    lines.push(
+      `Payment screenshot: ${body.screenshot.name} (attached — if it is missing, ask the customer to resend it)`
+    );
   }
 
   lines.push("", "Please contact the customer to confirm payment / delivery.");

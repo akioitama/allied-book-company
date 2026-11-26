@@ -55,21 +55,21 @@ export function Header() {
             </p>
           </div>
           <div className="flex items-center gap-x-3">
-            <span className="font-label text-[0.65rem] uppercase tracking-[0.12em] text-white/60">
+            <span className="font-label text-[0.75rem] font-semibold uppercase tracking-[0.12em] text-white/70">
               For enquiries
             </span>
             <a
               href="tel:+923375917645"
-              className="font-label text-[0.65rem] tracking-[0.06em] text-[#93C5FD] transition hover:text-white"
+              className="font-label text-[0.75rem] font-bold tracking-[0.06em] text-[#93C5FD] transition hover:text-white"
             >
               0337-5917645
             </a>
-            <span className="text-white/25" aria-hidden>
+            <span className="text-[0.75rem] font-bold text-white/30" aria-hidden>
               |
             </span>
             <a
               href="mailto:info@alliedbook.com"
-              className="font-label text-[0.65rem] tracking-[0.06em] text-[#93C5FD] transition hover:text-white"
+              className="font-label text-[0.75rem] font-bold tracking-[0.06em] text-[#93C5FD] transition hover:text-white"
             >
               info@alliedbook.com
             </a>

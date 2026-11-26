@@ -4,9 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PaymentDetails } from "@/components/checkout/PaymentDetails";
+import { PaymentScreenshotField } from "@/components/checkout/PaymentScreenshotField";
 import { formatPrice, cn } from "@/lib/utils";
 import { cartPricing } from "@/lib/shipping";
-import { sendOrderEmail } from "@/lib/orders/notify";
+import { sendOrderEmail, type PaymentScreenshot } from "@/lib/orders/notify";
+import {
+  PAYMENT_OPTIONS,
+  type PaymentOptionId,
+} from "@/lib/orders/payment";
 import { isEbookItem, useCartStore } from "@/lib/store/cart";
 
 const steps = [
@@ -14,6 +20,20 @@ const steps = [
   { id: 2, label: "Review order" },
   { id: 3, label: "Place order" },
 ];
+
+/** Read the receipt as raw base64 (no `data:` prefix) for the JSON order body. */
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result ?? "");
+      const comma = result.indexOf(",");
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Unreadable file"));
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -35,6 +55,13 @@ export default function CheckoutPage() {
   const [chosenPayment, setChosenPayment] = useState<
     "cash_on_delivery" | "upfront"
   >("cash_on_delivery");
+  // Which upfront channel the customer paid into (JazzCash / Easypaisa / UBL).
+  const [paymentAccount, setPaymentAccount] = useState<PaymentOptionId>(
+    PAYMENT_OPTIONS[0]?.id ?? "jazzcash"
+  );
+  // Required proof of payment for upfront orders.
+  const [receipt, setReceipt] = useState<File | null>(null);
+  const [showReceiptError, setShowReceiptError] = useState(false);
 
   // E-books force upfront payment; the choice is made on derived state so a
   // previously selected "cash on delivery" can never survive an e-book.
@@ -65,6 +92,32 @@ export default function CheckoutPage() {
   }
 
   async function handlePlaceOrder() {
+    // Upfront orders cannot be placed without the payment screenshot; surface
+    // the upload field's error instead of sending an unverifiable order.
+    if (paymentMethod === "upfront" && !receipt) {
+      setShowReceiptError(true);
+      setError("Please upload your payment screenshot to confirm this order.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    let screenshot: PaymentScreenshot | null = null;
+    try {
+      if (paymentMethod === "upfront" && receipt) {
+        screenshot = {
+          name: receipt.name,
+          mime: receipt.type,
+          base64: await fileToBase64(receipt),
+        };
+      }
+    } catch {
+      setError("Could not read the payment screenshot. Please choose it again.");
+      setLoading(false);
+      return;
+    }
+
     // Snapshot the order first so a failed send never costs the customer their cart.
     const payload = {
       items: items.map((i) => ({
@@ -78,13 +131,13 @@ export default function CheckoutPage() {
       })),
       shipping: form,
       payment_method: paymentMethod,
+      payment_account: paymentMethod === "upfront" ? paymentAccount : null,
+      screenshot,
       subtotal_cents: subtotal,
       delivery_cents: delivery,
       total_cents: grandTotal,
     };
 
-    setLoading(true);
-    setError(null);
     try {
       const result = await sendOrderEmail(payload);
 
@@ -294,7 +347,7 @@ export default function CheckoutPage() {
                   Upfront
                 </span>
                 <span className="mt-0.5 block font-body text-sm text-ink-soft">
-                  Pay before delivery (our team will share details)
+                  Pay before delivery — JazzCash, Easypaisa or UBL transfer
                 </span>
               </span>
             </label>
@@ -305,6 +358,52 @@ export default function CheckoutPage() {
               This order includes an e-book, so it must be paid upfront — cash on
               delivery is not available.
             </p>
+          ) : null}
+
+          {paymentMethod === "upfront" ? (
+            <div className="mt-6">
+              <PaymentDetails />
+
+              <fieldset className="mt-5">
+                <legend className="eyebrow">
+                  Which account did you pay into?
+                </legend>
+                <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                  {PAYMENT_OPTIONS.map((option) => (
+                    <label
+                      key={option.id}
+                      className={cn(
+                        "flex cursor-pointer items-center gap-2 border px-3 py-2 font-body text-sm transition",
+                        paymentAccount === option.id
+                          ? "border-oxblood bg-oxblood/5 text-ink"
+                          : "border-brass/40 text-ink-soft hover:border-oxblood/50"
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="payment_account"
+                        value={option.id}
+                        checked={paymentAccount === option.id}
+                        onChange={() => setPaymentAccount(option.id)}
+                      />
+                      {option.title}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
+              <div className="mt-5">
+                <PaymentScreenshotField
+                  file={receipt}
+                  onChange={(file) => {
+                    setReceipt(file);
+                    if (file) setShowReceiptError(false);
+                  }}
+                  showError={showReceiptError}
+                  disabled={loading}
+                />
+              </div>
+            </div>
           ) : null}
 
           <p className="mt-6 font-body text-lg leading-relaxed text-ink-soft">

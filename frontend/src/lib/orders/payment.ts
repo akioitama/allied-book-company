@@ -2,13 +2,44 @@
  * Where customers send an upfront payment.
  *
  * Kept dependency-free and in one place so the checkout screen, the order
- * email and the success page can never drift apart. Update the details here
- * and every surface follows.
+ * email and the success page can never drift apart.
+ *
+ * ── ADMIN: edit the account details here ────────────────────────────────────
+ * The real numbers must NOT be guessed. Either set the matching
+ * `NEXT_PUBLIC_PAY_*` environment variables (Vercel → Settings → Environment
+ * Variables, no redeploy needed for a preview but a rebuild is required), or
+ * replace the `value` strings below with the real details and redeploy.
+ *
+ * While a value still holds its `PLACEHOLDER_*` token the checkout shows it as
+ * "To be confirmed", so a customer is never told to send money to a fake
+ * account, and the store email lists every missing field for the team.
  */
+
+/** A value the admin has not filled in yet. */
+export const PLACEHOLDER_PREFIX = "PLACEHOLDER_";
+
+/** Read an admin-provided value, keeping the placeholder when it is unset. */
+function setting(envName: string, placeholder: string): string {
+  const value =
+    typeof process !== "undefined" && process.env
+      ? process.env[envName]?.trim()
+      : "";
+  return value || placeholder;
+}
+
+/** True when a detail is still a placeholder and must not be shown as real. */
+export function isPlaceholder(value?: string | null): boolean {
+  return !value || value.trim().startsWith(PLACEHOLDER_PREFIX);
+}
+
+export type PaymentOptionId =
+  | "jazzcash"
+  | "easypaisa"
+  | "ubl_bank_transfer";
 
 export type PaymentOption = {
   /** Internal id stored on the order (`payment_account`). */
-  id: "jazzcash_easypaisa" | "bank_transfer";
+  id: PaymentOptionId;
   /** Customer-facing name of the channel. */
   title: string;
   /** Short line under the title. */
@@ -17,35 +48,87 @@ export type PaymentOption = {
   rows: { label: string; value: string; copyable?: boolean }[];
 };
 
+/** Shown above the payment methods on the checkout screen. */
+export const PAYMENT_INSTRUCTIONS =
+  "Please pay using any one of the following payment methods and upload a screenshot of your payment receipt to confirm your order.";
+
 export const PAYMENT_OPTIONS: PaymentOption[] = [
   {
-    id: "jazzcash_easypaisa",
-    title: "JazzCash / EasyPaisa",
-    subtitle: "Send to this mobile account number",
+    id: "jazzcash",
+    title: "JazzCash",
+    subtitle: "Send the amount to this JazzCash account",
     rows: [
-      { label: "Account Title", value: "Nasrullah" },
-      { label: "Account No.", value: "03028414014", copyable: true },
+      {
+        label: "Account Title",
+        value: setting("NEXT_PUBLIC_PAY_JAZZCASH_TITLE", "PLACEHOLDER_JAZZCASH_TITLE"),
+      },
+      {
+        label: "Account No.",
+        value: setting("NEXT_PUBLIC_PAY_JAZZCASH_NUMBER", "PLACEHOLDER_JAZZCASH_NUMBER"),
+        copyable: true,
+      },
     ],
   },
   {
-    id: "bank_transfer",
-    title: "Bank Transfer",
-    subtitle: "Habib Metropolitan Bank",
+    id: "easypaisa",
+    title: "Easypaisa",
+    subtitle: "Send the amount to this Easypaisa account",
     rows: [
-      { label: "Bank Name", value: "Habib Metropolitan Bank" },
-      { label: "Account Name", value: "Allied Book Co." },
+      {
+        label: "Account Title",
+        value: setting("NEXT_PUBLIC_PAY_EASYPAISA_TITLE", "PLACEHOLDER_EASYPAISA_TITLE"),
+      },
+      {
+        label: "Account No.",
+        value: setting(
+          "NEXT_PUBLIC_PAY_EASYPAISA_NUMBER",
+          "PLACEHOLDER_EASYPAISA_NUMBER"
+        ),
+        copyable: true,
+      },
+    ],
+  },
+  {
+    id: "ubl_bank_transfer",
+    title: "UBL Bank Transfer",
+    subtitle: "Transfer the amount to this United Bank Limited account",
+    rows: [
+      {
+        label: "Account Title",
+        value: setting("NEXT_PUBLIC_PAY_UBL_TITLE", "PLACEHOLDER_UBL_TITLE"),
+      },
+      {
+        label: "Account No.",
+        value: setting("NEXT_PUBLIC_PAY_UBL_NUMBER", "PLACEHOLDER_UBL_NUMBER"),
+        copyable: true,
+      },
       {
         label: "IBAN",
-        value: "PK79MPBL0284067140155471",
+        value: setting("NEXT_PUBLIC_PAY_UBL_IBAN", "PLACEHOLDER_UBL_IBAN"),
         copyable: true,
+      },
+      {
+        label: "Branch",
+        value: setting("NEXT_PUBLIC_PAY_UBL_BRANCH", "PLACEHOLDER_UBL_BRANCH"),
       },
     ],
   },
 ];
 
-/** Label for an option id, used in the order email ("JazzCash / EasyPaisa"). */
+/** Label for an option id, used in the order email ("JazzCash"). */
 export function paymentOptionLabel(id?: string | null): string {
   return PAYMENT_OPTIONS.find((o) => o.id === id)?.title ?? "";
+}
+
+/** Details still waiting to be filled in — surfaced to the store, not customers. */
+export function pendingPaymentDetails(): string[] {
+  const missing: string[] = [];
+  for (const option of PAYMENT_OPTIONS) {
+    for (const row of option.rows) {
+      if (isPlaceholder(row.value)) missing.push(`${option.title} ${row.label}`);
+    }
+  }
+  return missing;
 }
 
 /**

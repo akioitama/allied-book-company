@@ -3,6 +3,13 @@ import nodemailer from "nodemailer";
 import { formatPrice } from "@/lib/utils";
 import { cartPricing, isEbookIsbn } from "@/lib/shipping";
 import { decrementStockForOrder } from "@/lib/books/stock";
+import {
+  SCREENSHOT_MAX_BYTES,
+  SCREENSHOT_MIME_TYPES,
+  SCREENSHOT_TYPE_LABEL,
+  paymentOptionLabel,
+  pendingPaymentDetails,
+} from "@/lib/orders/payment";
 
 export const runtime = "nodejs";
 
@@ -19,6 +26,13 @@ type OrderItem = {
   isbn?: string | null;
 };
 
+type OrderScreenshot = {
+  name: string;
+  mime: string;
+  /** Raw base64 (no `data:` prefix). */
+  base64: string;
+};
+
 type OrderBody = {
   items: OrderItem[];
   shipping: {
@@ -32,6 +46,10 @@ type OrderBody = {
     country: string;
   };
   payment_method?: "cash_on_delivery" | "upfront" | string;
+  /** Channel the customer paid into (`jazzcash`, `easypaisa`, `ubl_bank_transfer`). */
+  payment_account?: string | null;
+  /** Payment proof — required for upfront orders. */
+  screenshot?: OrderScreenshot | null;
   subtotal_cents?: number;
   delivery_cents?: number;
   total_cents: number;
@@ -41,6 +59,45 @@ function paymentLabel(method?: string) {
   if (method === "upfront") return "Upfront";
   if (method === "cash_on_delivery") return "Cash on delivery";
   return method?.trim() || "Not specified";
+}
+
+/**
+ * Normalizes the uploaded receipt and enforces the same rules the browser
+ * applies (type + size), so a hand-crafted request cannot bypass them.
+ */
+function parseScreenshot(
+  raw: unknown
+): { screenshot: OrderScreenshot } | { error: string } {
+  if (!raw || typeof raw !== "object") {
+    return { error: "Payment screenshot is required for upfront orders." };
+  }
+  const data = raw as Partial<Record<keyof OrderScreenshot, unknown>>;
+  const name = typeof data.name === "string" ? data.name.trim().slice(0, 200) : "";
+  const mime = typeof data.mime === "string" ? data.mime.trim().toLowerCase() : "";
+  const base64 =
+    typeof data.base64 === "string"
+      ? data.base64.replace(/^data:[^;]+;base64,/, "").replace(/\s+/g, "")
+      : "";
+
+  if (!base64) {
+    return { error: "Payment screenshot is required for upfront orders." };
+  }
+  if (!(SCREENSHOT_MIME_TYPES as readonly string[]).includes(mime)) {
+    return { error: `Payment screenshot must be a ${SCREENSHOT_TYPE_LABEL} image.` };
+  }
+  // base64 is ~4/3 of the byte size; check before decoding.
+  if (Math.floor((base64.length * 3) / 4) > SCREENSHOT_MAX_BYTES) {
+    return {
+      error: `Payment screenshot must be under ${Math.round(
+        SCREENSHOT_MAX_BYTES / (1024 * 1024)
+      )} MB.`,
+    };
+  }
+  return { screenshot: { name: name || "payment-receipt", mime, base64 } };
+}
+
+function screenshotBuffer(screenshot: OrderScreenshot): Buffer {
+  return Buffer.from(screenshot.base64, "base64");
 }
 
 /** Where order emails are delivered. Comma-separated for multiple inboxes. */
@@ -107,15 +164,32 @@ function buildOrderText(
         ? "Not applicable — all items are e-books"
         : "Free";
 
+  const method = hasEbooks ? "upfront" : body.payment_method;
+  const channel = paymentOptionLabel(body.payment_account);
   lines.push(
     "",
     `Subtotal: ${formatPrice(subtotal)}`,
     `Delivery: ${deliveryLine}`,
     `Total: ${formatPrice(body.total_cents)}`,
-    `Payment method: ${paymentLabel(
-      hasEbooks ? "upfront" : body.payment_method
-    )}${hasEbooks ? " (required — order contains an e-book)" : ""}`
+    `Payment method: ${paymentLabel(method)}${channel ? ` — ${channel}` : ""}${
+      hasEbooks ? " (required — order contains an e-book)" : ""
+    }`
   );
+
+  if (method === "upfront") {
+    lines.push(
+      body.screenshot
+        ? `Payment screenshot: ${body.screenshot.name} (attached)`
+        : "⚠ Payment screenshot MISSING — ask the customer to resend it before shipping."
+    );
+    // Warn the team when the checkout could not show a real account yet.
+    const pending = pendingPaymentDetails();
+    if (pending.length) {
+      lines.push(
+        `⚠ Checkout still shows "To be confirmed" for: ${pending.join(", ")}`
+      );
+    }
+  }
 
   // Inventory result so the team can see stock actually moved.
   if (stock?.applied?.length) {
@@ -138,12 +212,26 @@ function buildOrderText(
   return lines.join("\n");
 }
 
+/** The receipt rides along as a normal email attachment. */
+function receiptAttachments(screenshot?: OrderScreenshot | null) {
+  if (!screenshot) return undefined;
+  const safeName = screenshot.name.replace(/[\\/:*?"<>|]+/g, "-").slice(0, 120);
+  return [
+    {
+      filename: safeName || "payment-receipt",
+      content: screenshotBuffer(screenshot),
+      contentType: screenshot.mime,
+    },
+  ];
+}
+
 /** Preferred: Gmail SMTP with an App Password (most reliable for testing). */
 async function sendViaGmail(
   subject: string,
   text: string,
   replyTo: string,
-  to: string[]
+  to: string[],
+  screenshot?: OrderScreenshot | null
 ) {
   const user = process.env.GMAIL_USER?.trim();
   const pass = process.env.GMAIL_APP_PASSWORD?.trim();
@@ -160,6 +248,7 @@ async function sendViaGmail(
     replyTo,
     subject,
     text,
+    attachments: receiptAttachments(screenshot),
   });
   return true;
 }
@@ -168,7 +257,8 @@ async function sendViaResend(
   subject: string,
   text: string,
   replyTo: string,
-  to: string[]
+  to: string[],
+  screenshot?: OrderScreenshot | null
 ) {
   const key = process.env.RESEND_API_KEY?.trim();
   if (!key) return false;
@@ -177,6 +267,15 @@ async function sendViaResend(
   const from =
     process.env.ORDER_FROM_EMAIL?.trim() ||
     "Allied Book Co. <onboarding@resend.dev>";
+
+  const attachments = screenshot
+    ? [
+        {
+          filename: screenshot.name || "payment-receipt",
+          content: screenshot.base64,
+        },
+      ]
+    : undefined;
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -190,6 +289,7 @@ async function sendViaResend(
       reply_to: replyTo,
       subject,
       text,
+      attachments,
     }),
   });
 
@@ -322,12 +422,13 @@ async function sendOrderMail(
   text: string,
   replyTo: string,
   shipping: OrderBody["shipping"],
-  paymentMethod?: string
+  paymentMethod?: string,
+  screenshot?: OrderScreenshot | null
 ): Promise<{ via: string; failures: Failure[] }> {
   const failures: Failure[] = [];
 
   try {
-    if (await sendViaGmail(subject, text, replyTo, STORE_EMAILS)) {
+    if (await sendViaGmail(subject, text, replyTo, STORE_EMAILS, screenshot)) {
       return { via: "gmail", failures };
     }
   } catch (e) {
@@ -337,7 +438,7 @@ async function sendOrderMail(
   }
 
   try {
-    if (await sendViaResend(subject, text, replyTo, STORE_EMAILS)) {
+    if (await sendViaResend(subject, text, replyTo, STORE_EMAILS, screenshot)) {
       return { via: "resend", failures };
     }
   } catch (e) {
@@ -498,6 +599,18 @@ export async function POST(request: Request) {
       pricing.payment === "upfront" ? "upfront" : body.payment_method,
   };
 
+  // Server-side truth: an upfront order is only complete with proof of payment.
+  if (orderBody.payment_method === "upfront") {
+    const parsed = parseScreenshot(body.screenshot);
+    if ("error" in parsed) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+    orderBody.screenshot = parsed.screenshot;
+  } else {
+    // Never forward a receipt that belongs to a different payment flow.
+    orderBody.screenshot = null;
+  }
+
   // Reduce stock for physical titles. Failures are reported, never silent —
   // and never block the order email (the order itself is still valid).
   const stock = await decrementStockForOrder(
@@ -519,7 +632,8 @@ export async function POST(request: Request) {
       text,
       replyTo,
       body.shipping,
-      orderBody.payment_method
+      orderBody.payment_method,
+      orderBody.screenshot
     );
     return NextResponse.json({
       ok: true,
