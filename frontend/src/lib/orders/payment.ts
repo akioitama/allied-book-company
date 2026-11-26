@@ -60,11 +60,11 @@ export const PAYMENT_OPTIONS: PaymentOption[] = [
     rows: [
       {
         label: "Account Title",
-        value: setting("NEXT_PUBLIC_PAY_JAZZCASH_TITLE", "PLACEHOLDER_JAZZCASH_TITLE"),
+        value: setting("NEXT_PUBLIC_PAY_JAZZCASH_TITLE", "Nasrullah"),
       },
       {
         label: "Account No.",
-        value: setting("NEXT_PUBLIC_PAY_JAZZCASH_NUMBER", "PLACEHOLDER_JAZZCASH_NUMBER"),
+        value: setting("NEXT_PUBLIC_PAY_JAZZCASH_NUMBER", "03028414014"),
         copyable: true,
       },
     ],
@@ -76,14 +76,11 @@ export const PAYMENT_OPTIONS: PaymentOption[] = [
     rows: [
       {
         label: "Account Title",
-        value: setting("NEXT_PUBLIC_PAY_EASYPAISA_TITLE", "PLACEHOLDER_EASYPAISA_TITLE"),
+        value: setting("NEXT_PUBLIC_PAY_EASYPAISA_TITLE", "Nasrullah"),
       },
       {
         label: "Account No.",
-        value: setting(
-          "NEXT_PUBLIC_PAY_EASYPAISA_NUMBER",
-          "PLACEHOLDER_EASYPAISA_NUMBER"
-        ),
+        value: setting("NEXT_PUBLIC_PAY_EASYPAISA_NUMBER", "03028414014"),
         copyable: true,
       },
     ],
@@ -94,22 +91,39 @@ export const PAYMENT_OPTIONS: PaymentOption[] = [
     subtitle: "Transfer the amount to this United Bank Limited account",
     rows: [
       {
-        label: "Account Title",
-        value: setting("NEXT_PUBLIC_PAY_UBL_TITLE", "PLACEHOLDER_UBL_TITLE"),
-      },
-      {
-        label: "Account No.",
-        value: setting("NEXT_PUBLIC_PAY_UBL_NUMBER", "PLACEHOLDER_UBL_NUMBER"),
-        copyable: true,
-      },
-      {
-        label: "IBAN",
-        value: setting("NEXT_PUBLIC_PAY_UBL_IBAN", "PLACEHOLDER_UBL_IBAN"),
-        copyable: true,
+        label: "Bank",
+        value: setting("NEXT_PUBLIC_PAY_UBL_BANK", "Habib Metropolitan Bank"),
       },
       {
         label: "Branch",
-        value: setting("NEXT_PUBLIC_PAY_UBL_BRANCH", "PLACEHOLDER_UBL_BRANCH"),
+        value: setting(
+          "NEXT_PUBLIC_PAY_UBL_BRANCH",
+          "Shahrah-e-Quaid-e-Azam Branch, Lahore"
+        ),
+      },
+      {
+        label: "Branch Code",
+        value: setting("NEXT_PUBLIC_PAY_UBL_BRANCH_CODE", "0284"),
+        copyable: true,
+      },
+      {
+        label: "Account Title",
+        value: setting("NEXT_PUBLIC_PAY_UBL_TITLE", "ALLIED BOOK CO."),
+      },
+      {
+        label: "Account No.",
+        value: setting("NEXT_PUBLIC_PAY_UBL_NUMBER", "06714015 5471"),
+        copyable: true,
+      },
+      {
+        // Verify before relying on it: a Pakistani IBAN is 24 characters
+        // (PK + 2 check digits + 4-letter bank code + 16-digit account), and
+        // "PK79 MPBL 0284 06714015 5471" is one digit short, so it is shown
+        // exactly as provided rather than guessed at. Update the value once
+        // UBL confirms the full IBAN.
+        label: "IBAN",
+        value: setting("NEXT_PUBLIC_PAY_UBL_IBAN", "PK79MPBL0284067140155471"),
+        copyable: true,
       },
     ],
   },
