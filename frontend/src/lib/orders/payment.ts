@@ -116,11 +116,7 @@ export const PAYMENT_OPTIONS: PaymentOption[] = [
         copyable: true,
       },
       {
-        // Verify before relying on it: a Pakistani IBAN is 24 characters
-        // (PK + 2 check digits + 4-letter bank code + 16-digit account), and
-        // "PK79 MPBL 0284 06714015 5471" is one digit short, so it is shown
-        // exactly as provided rather than guessed at. Update the value once
-        // UBL confirms the full IBAN.
+        // 24 characters, verified against the ISO 13616 mod-97 checksum.
         label: "IBAN",
         value: setting("NEXT_PUBLIC_PAY_UBL_IBAN", "PK79MPBL0284067140155471"),
         copyable: true,
