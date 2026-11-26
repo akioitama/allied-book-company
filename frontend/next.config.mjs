@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // One canonical form per path. Slashes are stripped rather than redirected,
+  // so a stray "/shop/" does not cost an extra 308 request.
+  skipTrailingSlashRedirect: true,
+  trailingSlash: false,
   images: {
     // Covers rarely change for a given URL — cache optimized images long-term
     // so Open Library / Google are hit once, not on every page view.
@@ -54,8 +58,9 @@ const nextConfig = {
   },
   async headers() {
     return [
+      // Public images / fonts / icons (root-level, content-hashed shares).
       {
-        source: "/:all*(svg|jpg|jpeg|png|webp|woff2|js|css|ico)",
+        source: "/:all*(svg|jpg|jpeg|png|webp|avif|woff|woff2|ico)",
         headers: [
           {
             key: "Cache-Control",
@@ -63,6 +68,7 @@ const nextConfig = {
           },
         ],
       },
+      // Hashed build output — the browser must never re-download these.
       {
         source: "/_next/static/:path*",
         headers: [
@@ -71,6 +77,12 @@ const nextConfig = {
             value: "public, max-age=31536000, immutable",
           },
         ],
+      },
+      // Answer conditional requests from the browser's HTTP cache as cheaply
+      // as possible (no re-sent bytes, no extra asset requests).
+      {
+        source: "/:path*",
+        headers: [{ key: "Vary", value: "Accept-Encoding" }],
       },
     ];
   },

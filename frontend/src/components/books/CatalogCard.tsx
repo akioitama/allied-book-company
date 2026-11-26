@@ -35,7 +35,6 @@ export function CatalogCard({ book, className }: Props) {
     >
       <Link
         href={`/shop/${book.slug}`}
-        prefetch={false}
         className="relative block h-[240px] overflow-visible"
       >
         <BookCover
@@ -62,7 +61,7 @@ export function CatalogCard({ book, className }: Props) {
       </Link>
 
       <h3 className="mt-3 line-clamp-2 min-h-[2.6em] font-display text-base leading-snug text-ink">
-        <Link href={`/shop/${book.slug}`} prefetch={false} className="hover:text-oxblood">
+        <Link href={`/shop/${book.slug}`} className="hover:text-oxblood">
           {book.title}
         </Link>
       </h3>

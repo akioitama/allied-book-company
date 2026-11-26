@@ -64,7 +64,7 @@ export default function CartPage() {
                   <BookCover
                     src={primary}
                     fallbackSrcs={fallbacks}
-                    alt=""
+                    alt={`Cover of ${item.title}`}
                     title={item.title}
                     sizes="88px"
                     book3d

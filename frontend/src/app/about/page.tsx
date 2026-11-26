@@ -1,7 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 
-export const metadata = { title: "About Us" };
+export const metadata = {
+  title: "About Us",
+  alternates: { canonical: "/about" },
+};
+
+// Fully static page: prerender once and serve from the CDN for every view
+// instead of invoking the route on each request.
+export const revalidate = 3600;
 
 const LAHORE_MAPS_URL =
   "https://www.google.com/maps/dir//Allied+Book+Company,+Naqi+Market,+75+Shahrah-e-Quaid-e-Azam,+Mozang+Chungi,+Lahore,+54000/data=!4m6!4m5!1m1!4e2!1m2!1m1!1s0x391904ad34c0f1cf:0x9075cbabf1281693?sa=X&ved=1t:57443&ictx=111";

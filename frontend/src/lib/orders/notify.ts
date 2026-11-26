@@ -1,4 +1,5 @@
 import { formatPrice } from "@/lib/utils";
+import { paymentOptionLabel } from "@/lib/orders/payment";
 
 export const ORDER_NOTIFY_EMAIL = "info@alliedbook.com";
 
@@ -7,6 +8,19 @@ const SITE_URL =
   (typeof process !== "undefined" &&
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "")) ||
   "https://www.alliedbook.com";
+
+/** Max size of the payment screenshot the API route accepts (mirrored below). */
+export const SCREENSHOT_MAX_BYTES = 4 * 1024 * 1024;
+
+/** Attached payment proof sent with an upfront order. */
+export type PaymentScreenshot = {
+  /** File name shown on the attachment. */
+  name: string;
+  /** Image MIME type, e.g. `image/png`. */
+  mime: string;
+  /** Raw base64 (no `data:` prefix). */
+  base64: string;
+};
 
 export type OrderNotifyPayload = {
   items: Array<{
@@ -32,6 +46,12 @@ export type OrderNotifyPayload = {
     country: string;
   };
   payment_method: "cash_on_delivery" | "upfront" | string;
+  /** Payee account the customer used: `jazzcash_easypaisa` or `bank_transfer`. */
+  payment_account?: string | null;
+  /** Order number; the server generates one when it is missing. */
+  order_number?: string | null;
+  /** Payment proof — required for upfront orders. */
+  screenshot?: PaymentScreenshot | null;
   subtotal_cents: number;
   delivery_cents: number;
   total_cents: number;
@@ -43,14 +63,27 @@ function paymentLabel(method?: string) {
   return method?.trim() || "Not specified";
 }
 
+/** "Upfront — JazzCash / EasyPaisa", so the inbox knows which account to check. */
+export function paymentLabelWithAccount(
+  method?: string,
+  account?: string | null
+) {
+  const base = paymentLabel(method);
+  const accountLabel = paymentOptionLabel(account);
+  return accountLabel ? `${base} — ${accountLabel}` : base;
+}
+
 /** Any e-book in the order forces upfront payment. */
 export function orderHasEbooks(body: OrderNotifyPayload): boolean {
   return body.items.some((i) => i.is_ebook);
 }
 
+
 export function buildOrderText(body: OrderNotifyPayload): string {
   const lines: string[] = [
     "New order — Allied Book Co.",
+    "",
+    `Order number: ${body.order_number?.trim() || "(pending)"}`,
     "",
     "Customer",
     `  Name: ${body.shipping.name}`,
@@ -92,20 +125,28 @@ export function buildOrderText(body: OrderNotifyPayload): string {
     `Subtotal: ${formatPrice(body.subtotal_cents)}`,
     `Delivery: ${deliveryLine}`,
     `Total: ${formatPrice(body.total_cents)}`,
-    `Payment method: ${paymentLabel(
-      hasEbooks ? "upfront" : body.payment_method
-    )}${hasEbooks ? " (required — order contains an e-book)" : ""}`,
-    "",
-    "Please contact the customer to confirm payment / delivery."
+    `Payment method: ${paymentLabelWithAccount(
+      hasEbooks ? "upfront" : body.payment_method,
+      body.payment_account
+    )}${hasEbooks ? " (required — order contains an e-book)" : ""}`
   );
+
+  if (body.screenshot) {
+    lines.push(`Payment screenshot: ${body.screenshot.name} (attached)`);
+  }
+
+  lines.push("", "Please contact the customer to confirm payment / delivery.");
 
   return lines.join("\n");
 }
+
 
 export type OrderEmailResult =
   | {
       ok: true;
       via: "server" | "formsubmit";
+      /** Order number to show on the confirmation page. */
+      orderNumber?: string;
       /** FormSubmit asks for a one-time confirmation before it relays mail. */
       needsActivation?: boolean;
     }
@@ -125,7 +166,16 @@ async function sendViaApi(body: OrderNotifyPayload): Promise<OrderEmailResult | 
       body: JSON.stringify(body),
     });
 
-    if (res.ok) return { ok: true, via: "server" };
+    if (res.ok) {
+      let orderNumber: string | undefined;
+      try {
+        const data = (await res.json()) as { orderNumber?: string };
+        orderNumber = data?.orderNumber;
+      } catch {
+        // A 200 without JSON still means the order was mailed.
+      }
+      return { ok: true, via: "server", orderNumber };
+    }
 
     let detail = "";
     try {
@@ -166,6 +216,16 @@ export async function sendOrderEmail(body: OrderNotifyPayload): Promise<OrderEma
   return sendOrderEmailFromBrowser(body);
 }
 
+/** Base64 → Blob so the screenshot can ride along in a multipart post. */
+function base64ToBlob(base64: string, mime: string): Blob {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < bytes.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: mime });
+}
+
 /** Browser-side FormSubmit relay. Used only when the API route cannot send. */
 export async function sendOrderEmailFromBrowser(
   body: OrderNotifyPayload
@@ -185,31 +245,54 @@ export async function sendOrderEmailFromBrowser(
         ? window.location.origin
         : SITE_URL;
 
+    const fields: Record<string, string> = {
+      _subject: subject,
+      _captcha: "false",
+      _template: "table",
+      _replyto: body.shipping.email,
+      // FormSubmit reads _url for the domain shown in activation emails.
+      _url: pageUrl,
+      website: origin,
+      name: body.shipping.name,
+      email: body.shipping.email,
+      order_number: body.order_number?.trim() || "(pending)",
+      phone: body.shipping.phone?.trim() || "—",
+      payment_method: paymentLabelWithAccount(
+        body.payment_method,
+        body.payment_account
+      ),
+      address: `${body.shipping.line1}, ${body.shipping.city}, ${body.shipping.region} ${body.shipping.postal}, ${body.shipping.country}`,
+      message,
+    };
+
+    // Multipart keeps the payment screenshot with the order; JSON is simpler
+    // when there is nothing to attach.
+    let requestBody: BodyInit;
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (body.screenshot) {
+      const form = new FormData();
+      for (const [key, value] of Object.entries(fields)) {
+        form.append(key, value);
+      }
+      form.append(
+        "attachment",
+        base64ToBlob(body.screenshot.base64, body.screenshot.mime),
+        body.screenshot.name
+      );
+      requestBody = form;
+    } else {
+      headers["Content-Type"] = "application/json";
+      requestBody = JSON.stringify(fields);
+    }
+
     const res = await fetch(
       `https://formsubmit.co/ajax/${encodeURIComponent(ORDER_NOTIFY_EMAIL)}`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
+        headers,
         // Help FormSubmit see the live domain (stricter referrer policies hide path).
         referrerPolicy: "strict-origin-when-cross-origin",
-        body: JSON.stringify({
-          _subject: subject,
-          _captcha: "false",
-          _template: "table",
-          _replyto: body.shipping.email,
-          // FormSubmit reads _url for the domain shown in activation emails.
-          _url: pageUrl,
-          website: origin,
-          name: body.shipping.name,
-          email: body.shipping.email,
-          phone: body.shipping.phone?.trim() || "—",
-          payment_method: paymentLabel(body.payment_method),
-          address: `${body.shipping.line1}, ${body.shipping.city}, ${body.shipping.region} ${body.shipping.postal}, ${body.shipping.country}`,
-          message,
-        }),
+        body: requestBody,
       }
     );
 
@@ -248,7 +331,12 @@ export async function sendOrderEmailFromBrowser(
         (data.message || "").toLowerCase().includes("activate")
     );
 
-    return { ok: true, via: "formsubmit", needsActivation };
+    return {
+      ok: true,
+      via: "formsubmit",
+      orderNumber: body.order_number ?? undefined,
+      needsActivation,
+    };
   } catch {
     return {
       ok: false,

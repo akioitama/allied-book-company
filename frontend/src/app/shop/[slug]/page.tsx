@@ -1,4 +1,5 @@
 import { cache, type ReactNode } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddToCartButton } from "@/components/books/AddToCartButton";
@@ -13,6 +14,8 @@ import type { Book } from "@/types";
 
 type Props = { params: { slug: string } };
 
+// ISR: refresh at most every 5 minutes; crawler/traffic hits are served from
+// the CDN cache instead of re-rendering the route.
 export const revalidate = 300;
 
 const getBook = cache(async (slug: string) => {
@@ -24,9 +27,21 @@ const getBook = cache(async (slug: string) => {
   }
 });
 
-export async function generateMetadata({ params }: Props) {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const book = await getBook(params.slug);
-  return { title: book?.title ?? "Book" };
+  const title = book?.title ?? "Book";
+  // Absolute canonical keeps every book reachable under exactly one URL, so
+  // crawlers don't index (and re-request) parameterized duplicates.
+  return {
+    title,
+    alternates: { canonical: `/shop/${params.slug}` },
+    openGraph: {
+      title,
+      type: "book",
+      url: `/shop/${params.slug}`,
+      images: book?.cover_image_url ? [book.cover_image_url] : undefined,
+    },
+  };
 }
 
 function displayYear(book: Book) {
@@ -84,14 +99,13 @@ export default async function BookDetailPage({ params }: Props) {
   return (
     <div className="mx-auto max-w-6xl px-5 py-14 md:px-8">
       <p className="eyebrow mb-6">
-        <Link href="/shop" prefetch={false} className="hover:text-ink">
+        <Link href="/shop" className="hover:text-ink">
           Shop
         </Link>
         {" / "}
         {book.category_slug && categoryName ? (
           <Link
             href={`/shop?category=${book.category_slug}`}
-            prefetch={false}
             className="hover:text-ink"
           >
             {categoryName}

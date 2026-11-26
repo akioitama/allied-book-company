@@ -63,14 +63,12 @@ export default async function HomePage() {
             <div className="mt-11 flex flex-wrap items-center justify-center gap-4 animate-fade-up [animation-delay:160ms]">
               <Link
                 href="/shop"
-                prefetch={false}
                 className="label-caps border border-white bg-white px-7 py-3.5 text-[0.72rem] text-[#0F172A] transition hover:bg-[#BFDBFE]"
               >
                 Enter the Shop
               </Link>
               <Link
                 href="/about"
-                prefetch={false}
                 className="label-caps border border-white/50 px-7 py-3.5 text-[0.72rem] text-white transition hover:bg-white/10"
               >
                 Our Story

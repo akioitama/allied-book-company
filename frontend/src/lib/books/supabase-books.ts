@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { upgradeCoverUrl } from "@/lib/books/covers";
 import { SITEWIDE_DISCOUNT_PERCENT } from "@/lib/books/pricing";
 import { SCHOOL_BOOK_ISBNS } from "@/lib/data/school-books";
+import { cachedJson } from "@/lib/client-cache";
 
 export type BookRow = {
   id: string;
@@ -146,8 +147,10 @@ export async function listCategories(
     return categoriesCache.list;
   }
   if (categoriesInflight) return categoriesInflight;
-  categoriesInflight = (async () => {
-    try {
+  categoriesInflight = cachedJson(
+    "categories:v1",
+    CATEGORY_READ_TTL_MS,
+    async () => {
       const supabase = clientOrThrow(client);
       const { data, error } = await supabase
         .from("categories")
@@ -159,10 +162,10 @@ export async function listCategories(
       }
       categoriesCache = { at: Date.now(), list: (data as CategoryRecord[]) ?? [] };
       return categoriesCache.list;
-    } finally {
-      categoriesInflight = null;
     }
-  })();
+  ).finally(() => {
+    categoriesInflight = null;
+  }) as Promise<CategoryRecord[]>;
   return categoriesInflight;
 }
 
@@ -215,6 +218,14 @@ export type ListBooksOpts = {
     | "discount_percent";
   ascending?: boolean;
 };
+
+/**
+ * How long an identical catalog read is reused in the browser. Categories
+ * change a few times a season; the shop grid only needs to reflect stock and
+ * price edits within minutes.
+ */
+const CATEGORY_READ_TTL_MS = 10 * 60 * 1000;
+const LIST_READ_TTL_MS = 60 * 1000;
 
 /** Card/list views don't need `description` — keeps payloads small. */
 const LIST_COLUMNS =
@@ -271,6 +282,16 @@ export function dedupeBooksByTitle(books: Book[]): Book[] {
 
 export async function listBooks(
   opts: ListBooksOpts = {},
+  client?: SupabaseClient | null
+): Promise<{ books: Book[]; total: number }> {
+  // Same query = same answer for a minute: reuse it instead of re-fetching
+  // (paging back and forth, the filter bar remounting, etc.).
+  const key = `listBooks:${JSON.stringify(opts)}`;
+  return cachedJson(key, LIST_READ_TTL_MS, () => queryBooks(opts, client));
+}
+
+async function queryBooks(
+  opts: ListBooksOpts,
   client?: SupabaseClient | null
 ): Promise<{ books: Book[]; total: number }> {
   const supabase = clientOrThrow(client);

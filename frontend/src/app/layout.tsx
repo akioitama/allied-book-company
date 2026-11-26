@@ -34,12 +34,20 @@ const label = Outfit({
 });
 
 export const metadata: Metadata = {
+  // One canonical origin. Without this, Next.js can only emit a relative
+  // canonical per page, Google keeps crawling the *.vercel.app deployment URL
+  // as if it were a second site, and every page is requested twice by crawlers.
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://www.alliedbook.com"
+  ),
   title: {
     default: "Allied Book Co. — Blue Atlas House",
     template: "%s · Allied Book Co.",
   },
   description:
     "An online bookstore with a blue atlas identity — browse shelves, search titles, and chart your next read.",
+  alternates: { canonical: "/" },
+  robots: { index: true, follow: true },
   icons: {
     icon: [{ url: "/logo.png", type: "image/png" }],
     apple: [{ url: "/logo.png", type: "image/png" }],

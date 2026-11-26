@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   SUBJECT_GROUPS,
   subjectHref,
@@ -23,6 +23,20 @@ export function SubjectsMenu({ className, inverted }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
+
+  /**
+   * The panel holds 100+ subject links. Prefetching any of them would issue a
+   * request per link as the shopper scans the menu, so the panel's payload is
+   * fetched once on hover/focus of the trigger instead — after which every link
+   * inside it navigates instantly.
+   */
+  const router = useRouter();
+  const warmed = useRef(false);
+  const warm = () => {
+    if (warmed.current) return;
+    warmed.current = true;
+    router.prefetch("/shop");
+  };
 
   const activeGroup: SubjectGroup | undefined =
     SUBJECT_GROUPS.find((g) => g.slug === activeSlug) ?? SUBJECT_GROUPS[0];
@@ -58,7 +72,12 @@ export function SubjectsMenu({ className, inverted }: Props) {
         type="button"
         aria-expanded={open}
         aria-controls="subjects-panel"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          warm();
+          setOpen((v) => !v);
+        }}
+        onMouseEnter={warm}
+        onFocus={warm}
         className={cn(
           "label-caps inline-flex h-5 items-center gap-1 p-0 text-[0.7rem] leading-none transition",
           inverted

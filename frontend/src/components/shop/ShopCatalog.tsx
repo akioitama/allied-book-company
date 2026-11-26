@@ -54,6 +54,25 @@ export function ShopCatalog() {
   const requestId = useRef(0);
 
   useEffect(() => {
+    let cancelled = false;
+    listCategories()
+      .then((list) => {
+        if (!cancelled) setShelves(list);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /** Route-driven state updates are synchronous; don't re-debounce them. */
+  const paramsLoaded = useRef(false);
+  useEffect(() => {
+    if (!paramsLoaded.current) {
+      // First run mirrors the initial state — nothing has changed yet.
+      paramsLoaded.current = true;
+      return;
+    }
     const nextQ = params.get("q") ?? "";
     const nextCategory = params.get("category") ?? "";
     const nextAuthor = params.get("author") ?? "";
@@ -67,18 +86,6 @@ export function ShopCatalog() {
     }));
     setPage(1);
   }, [params]);
-
-  useEffect(() => {
-    let cancelled = false;
-    listCategories()
-      .then((list) => {
-        if (!cancelled) setShelves(list);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const syncParams = (patch: Partial<ShopFilters>) => {
     const next = new URLSearchParams(params.toString());
@@ -132,6 +139,9 @@ export function ShopCatalog() {
     }
   }, [filters, q, page]);
 
+  // Typed queries are debounced 250 ms (one request per pause, not per key).
+  // Filter, sort and page changes load immediately, and identical reads are
+  // served from the short-lived cache instead of hitting Supabase again.
   useEffect(() => {
     const t = window.setTimeout(() => {
       void load();

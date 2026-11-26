@@ -1,6 +1,13 @@
 import Link from "next/link";
 
-export const metadata = { title: "Services" };
+export const metadata = {
+  title: "Services",
+  alternates: { canonical: "/contact" },
+};
+
+// Fully static page: prerender once and serve from the CDN for every view
+// instead of invoking the route on each request.
+export const revalidate = 3600;
 
 const HIGHLIGHTS = [
   {

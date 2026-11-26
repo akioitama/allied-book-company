@@ -21,7 +21,7 @@ export function Footer() {
         <div className="grid gap-12 md:grid-cols-2 md:gap-16 lg:gap-24">
           {/* Brand + contact */}
           <div className="flex flex-col">
-            <Link href="/" prefetch={false} className="inline-flex items-center gap-3 self-start">
+            <Link href="/" className="inline-flex items-center gap-3 self-start">
               <Image
                 src="/logo.png"
                 alt="Allied Book Co."
@@ -156,7 +156,6 @@ export function Footer() {
                   ) : (
                     <Link
                       href={link.href}
-                      prefetch={false}
                       className="flex items-center justify-between py-3.5 font-body text-lg text-white/80 transition hover:text-brass-light"
                     >
                       {link.label}
