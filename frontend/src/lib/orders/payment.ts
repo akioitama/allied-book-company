@@ -59,12 +59,24 @@ export type PaymentOption = {
 export const PAYMENT_INSTRUCTIONS =
   "Please pay using any one of the following payment methods and upload a screenshot of your payment receipt to confirm your order.";
 
+/**
+ * Logo files (in `frontend/public`). To use an official asset, drop the file
+ * into `public/payments/` and change only the path here — any image format
+ * works (`*.png`, `*.jpg`, `*.webp`, `*.svg`). A missing file falls back to
+ * initials, so a typo can never break the checkout.
+ */
+export const PAYMENT_LOGOS = {
+  jazzcash: "/payments/jazzcash.svg",
+  easypaisa: "/payments/easypaisa.svg",
+  bank: "/payments/habib-metro.svg",
+} as const;
+
 export const PAYMENT_OPTIONS: PaymentOption[] = [
   {
     id: "jazzcash",
     title: "JazzCash",
     subtitle: "Send the amount to this JazzCash account",
-    logo: "/payments/jazzcash.svg",
+    logo: PAYMENT_LOGOS.jazzcash,
     rows: [
       {
         label: "Account Title",
@@ -81,7 +93,7 @@ export const PAYMENT_OPTIONS: PaymentOption[] = [
     id: "easypaisa",
     title: "Easypaisa",
     subtitle: "Send the amount to this Easypaisa account",
-    logo: "/payments/easypaisa.svg",
+    logo: PAYMENT_LOGOS.easypaisa,
     rows: [
       {
         label: "Account Title",
@@ -105,7 +117,7 @@ export const PAYMENT_OPTIONS: PaymentOption[] = [
       "NEXT_PUBLIC_PAY_BANK",
       "Habib Metropolitan Bank"
     )} account`,
-    logo: "/payments/habib-metro.svg",
+    logo: PAYMENT_LOGOS.bank,
     rows: [
       {
         label: "Bank",

@@ -83,15 +83,16 @@ function PaymentLogo({
   }
 
   return (
-    <span className="grid h-12 w-16 shrink-0 place-items-center overflow-hidden rounded border border-brass/40 bg-white p-1">
+    <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded border border-brass/40 bg-white p-1">
       {/* Plain <img>: logos live in /public, and this avoids an optimizer
-          round-trip for a handful of tiny static assets. */}
+          round-trip for a handful of tiny static assets. Any format works
+          (svg, png, jpg, webp) — the path comes from PAYMENT_LOGOS. */}
       {/* eslint-disable-next-line @next/next/no-img-element -- static public logo */}
       <img
         src={src}
         alt={`${label} logo`}
-        width={64}
-        height={48}
+        width={56}
+        height={56}
         className="h-full w-full object-contain"
         loading="lazy"
         decoding="async"
