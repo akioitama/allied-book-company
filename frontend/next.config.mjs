@@ -58,9 +58,10 @@ const nextConfig = {
   },
   async headers() {
     return [
-      // Public images / fonts / icons (root-level, content-hashed shares).
+      // Hashed build output — the URL changes with the content, so a one-year
+      // immutable cache is safe and saves re-requests on every visit.
       {
-        source: "/:all*(svg|jpg|jpeg|png|webp|avif|woff|woff2|ico)",
+        source: "/_next/static/:path*",
         headers: [
           {
             key: "Cache-Control",
@@ -68,13 +69,17 @@ const nextConfig = {
           },
         ],
       },
-      // Hashed build output — the browser must never re-download these.
+      // Public images / fonts / icons keep a STABLE path (public/logo.png,
+      // public/payments/*.svg). They must never be `immutable`: replacing the
+      // file at the same URL would leave returning visitors on the old copy for
+      // a year with no revalidation. Revalidate instead, so a changed logo is
+      // picked up on the next visit while unchanged files cost only a 304.
       {
-        source: "/_next/static/:path*",
+        source: "/:all*(svg|jpg|jpeg|png|webp|avif|woff|woff2|ico)",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
+            value: "public, max-age=0, must-revalidate",
           },
         ],
       },

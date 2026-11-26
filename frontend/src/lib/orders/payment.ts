@@ -64,11 +64,20 @@ export const PAYMENT_INSTRUCTIONS =
  * into `public/payments/` and change only the path here — any image format
  * works (`*.png`, `*.jpg`, `*.webp`, `*.svg`). A missing file falls back to
  * initials, so a typo can never break the checkout.
+ *
+ * `LOGO_VERSION` is appended as `?v=` to bust browser caches: these files sit
+ * at stable paths, and browsers (plus the CDN) may hold an old copy for a long
+ * time even after the file is replaced. Bump this number whenever a logo image
+ * changes and every visitor picks up the new artwork on their next visit.
  */
+const LOGO_VERSION = "3";
+
+const logo = (file: string) => `/payments/${file}?v=${LOGO_VERSION}`;
+
 export const PAYMENT_LOGOS = {
-  jazzcash: "/payments/jazzcash.svg",
-  easypaisa: "/payments/easypaisa.svg",
-  bank: "/payments/habib-metro.svg",
+  jazzcash: logo("jazzcash.svg"),
+  easypaisa: logo("easypaisa.svg"),
+  bank: logo("habib-metro.svg"),
 } as const;
 
 export const PAYMENT_OPTIONS: PaymentOption[] = [
