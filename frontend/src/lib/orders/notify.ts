@@ -46,7 +46,7 @@ export type OrderNotifyPayload = {
     country: string;
   };
   payment_method: "cash_on_delivery" | "upfront" | string;
-  /** Payee account the customer used: `jazzcash`, `easypaisa` or `ubl_bank_transfer`. */
+  /** Payee account the customer used: `jazzcash`, `easypaisa` or `hbl_bank_transfer`. */
   payment_account?: string | null;
   /** Order number; the server generates one when it is missing. */
   order_number?: string | null;

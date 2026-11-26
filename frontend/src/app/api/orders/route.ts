@@ -46,7 +46,7 @@ type OrderBody = {
     country: string;
   };
   payment_method?: "cash_on_delivery" | "upfront" | string;
-  /** Channel the customer paid into (`jazzcash`, `easypaisa`, `ubl_bank_transfer`). */
+  /** Channel the customer paid into (`jazzcash`, `easypaisa`, `hbl_bank_transfer`). */
   payment_account?: string | null;
   /** Payment proof — required for upfront orders. */
   screenshot?: OrderScreenshot | null;

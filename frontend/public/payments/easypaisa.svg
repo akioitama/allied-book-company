@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 96" width="168" height="96" role="img" aria-label="Easypaisa">
+  <title>Easypaisa</title>
+  <rect width="168" height="96" rx="10" fill="#FFFFFF"/>
+  <rect x="1" y="1" width="166" height="94" rx="9.5" fill="none" stroke="#00A651" stroke-width="2"/>
+  <circle cx="34" cy="48" r="20" fill="#00A651"/>
+  <path d="M34 30c6 0 10 4 10 9 0 6-5 8-5 13h-5c0-5-5-7-5-13 0-5 4-9 5-9z" fill="#FFFFFF"/>
+  <circle cx="34" cy="58" r="3" fill="#FFD400"/>
+  <text x="62" y="47" fill="#00893F" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700">easypaisa</text>
+  <text x="63" y="66" fill="#5B6770" font-family="Arial, Helvetica, sans-serif" font-size="10.5" letter-spacing="1.4">MOBILE ACCOUNT</text>
+</svg>

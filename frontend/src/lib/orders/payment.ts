@@ -35,7 +35,12 @@ export function isPlaceholder(value?: string | null): boolean {
 export type PaymentOptionId =
   | "jazzcash"
   | "easypaisa"
-  | "ubl_bank_transfer";
+  | "hbl_bank_transfer";
+
+/** Display label used in the order email. */
+function bankLabel(bank?: string | null): string {
+  return bank?.trim() || "Bank";
+}
 
 export type PaymentOption = {
   /** Internal id stored on the order (`payment_account`). */
@@ -46,6 +51,8 @@ export type PaymentOption = {
   subtitle: string;
   /** Label/value rows exactly as they should be read out. */
   rows: { label: string; value: string; copyable?: boolean }[];
+  /** Logo file in /public — omitted when no logo asset exists. */
+  logo?: string;
 };
 
 /** Shown above the payment methods on the checkout screen. */
@@ -57,6 +64,7 @@ export const PAYMENT_OPTIONS: PaymentOption[] = [
     id: "jazzcash",
     title: "JazzCash",
     subtitle: "Send the amount to this JazzCash account",
+    logo: "/payments/jazzcash.svg",
     rows: [
       {
         label: "Account Title",
@@ -73,6 +81,7 @@ export const PAYMENT_OPTIONS: PaymentOption[] = [
     id: "easypaisa",
     title: "Easypaisa",
     subtitle: "Send the amount to this Easypaisa account",
+    logo: "/payments/easypaisa.svg",
     rows: [
       {
         label: "Account Title",
@@ -86,39 +95,47 @@ export const PAYMENT_OPTIONS: PaymentOption[] = [
     ],
   },
   {
-    id: "ubl_bank_transfer",
-    title: "UBL Bank Transfer",
-    subtitle: "Transfer the amount to this United Bank Limited account",
+    // The account is at Habib Metropolitan Bank — the title and subtitle are
+    // derived from the configured bank so they can never name a different bank.
+    id: "hbl_bank_transfer",
+    title: `${bankLabel(
+      setting("NEXT_PUBLIC_PAY_BANK", "Habib Metropolitan Bank")
+    )} Bank Transfer`,
+    subtitle: `Transfer the amount to our ${setting(
+      "NEXT_PUBLIC_PAY_BANK",
+      "Habib Metropolitan Bank"
+    )} account`,
+    logo: "/payments/habib-metro.svg",
     rows: [
       {
         label: "Bank",
-        value: setting("NEXT_PUBLIC_PAY_UBL_BANK", "Habib Metropolitan Bank"),
+        value: setting("NEXT_PUBLIC_PAY_BANK", "Habib Metropolitan Bank"),
       },
       {
         label: "Branch",
         value: setting(
-          "NEXT_PUBLIC_PAY_UBL_BRANCH",
+          "NEXT_PUBLIC_PAY_BANK_BRANCH",
           "Shahrah-e-Quaid-e-Azam Branch, Lahore"
         ),
       },
       {
         label: "Branch Code",
-        value: setting("NEXT_PUBLIC_PAY_UBL_BRANCH_CODE", "0284"),
+        value: setting("NEXT_PUBLIC_PAY_BANK_BRANCH_CODE", "0284"),
         copyable: true,
       },
       {
         label: "Account Title",
-        value: setting("NEXT_PUBLIC_PAY_UBL_TITLE", "ALLIED BOOK CO."),
+        value: setting("NEXT_PUBLIC_PAY_BANK_TITLE", "ALLIED BOOK CO."),
       },
       {
         label: "Account No.",
-        value: setting("NEXT_PUBLIC_PAY_UBL_NUMBER", "06714015 5471"),
+        value: setting("NEXT_PUBLIC_PAY_BANK_NUMBER", "06714015 5471"),
         copyable: true,
       },
       {
         // 24 characters, verified against the ISO 13616 mod-97 checksum.
         label: "IBAN",
-        value: setting("NEXT_PUBLIC_PAY_UBL_IBAN", "PK79MPBL0284067140155471"),
+        value: setting("NEXT_PUBLIC_PAY_BANK_IBAN", "PK79MPBL0284067140155471"),
         copyable: true,
       },
     ],
