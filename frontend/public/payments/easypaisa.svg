@@ -1,10 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 96" width="168" height="96" role="img" aria-label="Easypaisa">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 380" width="380" height="380" role="img" aria-label="Easypaisa">
   <title>Easypaisa</title>
-  <rect width="168" height="96" rx="10" fill="#FFFFFF"/>
-  <rect x="1" y="1" width="166" height="94" rx="9.5" fill="none" stroke="#00A651" stroke-width="2"/>
-  <circle cx="34" cy="48" r="20" fill="#00A651"/>
-  <path d="M34 30c6 0 10 4 10 9 0 6-5 8-5 13h-5c0-5-5-7-5-13 0-5 4-9 5-9z" fill="#FFFFFF"/>
-  <circle cx="34" cy="58" r="3" fill="#FFD400"/>
-  <text x="62" y="47" fill="#00893F" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700">easypaisa</text>
-  <text x="63" y="66" fill="#5B6770" font-family="Arial, Helvetica, sans-serif" font-size="10.5" letter-spacing="1.4">MOBILE ACCOUNT</text>
+  <!--
+    Reference artwork: a dark egg-shaped "e" bowl on top with its counter cut
+    towards the bottom-right, plus a thick green smile-shaped arc underneath.
+    A white diagonal gap separates the two shapes. No wordmark in the source.
+  -->
+  <defs>
+    <clipPath id="canvas">
+      <rect x="0" y="0" width="380" height="380" />
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#canvas)">
+    <!-- Dark bowl: outer egg minus the offset counter. -->
+    <mask id="bowl">
+      <rect width="380" height="380" fill="#000" />
+      <ellipse cx="190" cy="128" rx="140" ry="104" transform="rotate(-7 190 128)" fill="#fff" />
+      <ellipse cx="222" cy="152" rx="80" ry="48" transform="rotate(-12 222 152)" fill="#000" />
+    </mask>
+    <rect width="380" height="380" fill="#2C2839" mask="url(#bowl)" />
+
+    <!-- Green band: thick smile, ends sliced on a diagonal. -->
+    <mask id="band">
+      <rect width="380" height="380" fill="#000" />
+      <path
+        d="M26 196
+           C30 306 112 358 200 358
+           C288 358 348 316 360 244
+           L296 262
+           C284 302 246 318 198 318
+           C136 318 84 288 70 204
+           Z"
+        fill="#fff"
+      />
+    </mask>
+    <rect width="380" height="380" fill="#22B24C" mask="url(#band)" />
+  </g>
 </svg>
