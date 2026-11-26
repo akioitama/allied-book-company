@@ -74,7 +74,7 @@ function PaymentLogo({
   if (!src || failed) {
     return (
       <span
-        className="grid h-10 w-14 shrink-0 place-items-center rounded border border-brass/40 bg-parchment-deep font-label text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-[#1E3A8A]"
+        className="grid h-12 w-16 shrink-0 place-items-center rounded border border-brass/40 bg-parchment-deep font-label text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-[#1E3A8A]"
         aria-hidden
       >
         {initials}
@@ -83,15 +83,15 @@ function PaymentLogo({
   }
 
   return (
-    <span className="grid h-10 w-14 shrink-0 place-items-center overflow-hidden rounded border border-brass/40 bg-white p-1">
+    <span className="grid h-12 w-16 shrink-0 place-items-center overflow-hidden rounded border border-brass/40 bg-white p-1">
       {/* Plain <img>: logos live in /public, and this avoids an optimizer
           round-trip for a handful of tiny static assets. */}
       {/* eslint-disable-next-line @next/next/no-img-element -- static public logo */}
       <img
         src={src}
         alt={`${label} logo`}
-        width={56}
-        height={40}
+        width={64}
+        height={48}
         className="h-full w-full object-contain"
         loading="lazy"
         decoding="async"
