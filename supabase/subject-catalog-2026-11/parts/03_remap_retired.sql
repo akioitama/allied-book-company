@@ -1,5 +1,5 @@
 -- Re-home books left on retired (legacy) shelves.
--- Generated 2026-11-27T11:32:28.450Z
+-- Generated 2026-11-27T12:22:23.926Z
 --
 -- The catalog import only covers books in WEBSITE LIST. Books that are real
 -- stock but not in that sheet still sit on shelves the storefront no longer
@@ -87,8 +87,7 @@ commit;
 select
   count(*)                                                          as books_total,
   count(*) filter (where b.category_id is null)                     as no_category,
-  count(*) filter (where c.name like '% (retired)')                 as on_retired,
-  count(*) filter (where c.name is not null and c.name not like '% (retired)')
-                                                                    as on_taxonomy
+  count(*) filter (where c.is_active is false)                      as on_retired,
+  count(*) filter (where c.is_active)                               as on_taxonomy
 from public.books b
 left join public.categories c on c.id = b.category_id;

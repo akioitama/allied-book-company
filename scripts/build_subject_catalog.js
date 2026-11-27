@@ -482,12 +482,16 @@ on conflict (slug) do update set
   name = excluded.name,
   description = excluded.description;
 
--- Retire shelves that are not part of the taxonomy. They are only renamed so
--- no book loses its category_id; the storefront never shows them again.
+-- Legacy shelves leave the taxonomy: flag them instead of renaming, because
+-- categories.name is shown on book cards. Books keep their category_id; the
+-- storefront simply stops offering these shelves to browse.
+alter table public.categories
+  add column if not exists is_active boolean not null default true;
+
 update public.categories
-   set name = name || ' (retired)'
- where name not like '% (retired)'
-   and slug <> all (array[${shelfRows.map((r) => sqlStr(r.slug)).join(", ")}]::text[]);
+   set is_active = slug = any (array[${shelfRows
+     .map((r) => sqlStr(r.slug))
+     .join(", ")}]::text[]);
 `;
 fs.writeFileSync(
   path.join(OUT_DIR, "parts", "01_categories.sql"),

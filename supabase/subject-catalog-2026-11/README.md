@@ -1,6 +1,6 @@
 # Subject catalog — 2026-11
 
-Generated from `WEBSITE LIST 04-11-2026-Sheet1.csv` on 2026-11-27T11:21:48.955Z.
+Generated from `WEBSITE LIST 04-11-2026-Sheet1.csv` on 2026-11-27T12:22:23.704Z.
 
 - Books with CODE: **6880**
 - Books matched by ISBN only: **15**

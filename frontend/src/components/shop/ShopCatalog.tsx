@@ -11,7 +11,7 @@ import {
 } from "@/components/shop/ShopFilterBar";
 import {
   listBooks,
-  listCategories,
+  listActiveCategories,
   type CategoryRecord,
 } from "@/lib/books/supabase-books";
 import { SUBJECT_GROUPS } from "@/lib/data/subjects";
@@ -58,7 +58,7 @@ export function ShopCatalog() {
 
   useEffect(() => {
     let cancelled = false;
-    listCategories()
+    listActiveCategories()
       .then((list) => {
         if (!cancelled) setShelves(list);
       })

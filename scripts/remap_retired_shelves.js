@@ -242,9 +242,8 @@ commit;
 select
   count(*)                                                          as books_total,
   count(*) filter (where b.category_id is null)                     as no_category,
-  count(*) filter (where c.name like '% (retired)')                 as on_retired,
-  count(*) filter (where c.name is not null and c.name not like '% (retired)')
-                                                                    as on_taxonomy
+  count(*) filter (where c.is_active is false)                      as on_retired,
+  count(*) filter (where c.is_active)                               as on_taxonomy
 from public.books b
 left join public.categories c on c.id = b.category_id;
 `;

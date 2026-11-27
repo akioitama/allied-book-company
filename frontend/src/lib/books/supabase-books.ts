@@ -138,13 +138,24 @@ export function mapBookRow(
   };
 }
 
-export type CategoryRecord = { id: string; slug: string; name: string };
+export type CategoryRecord = {
+  id: string;
+  slug: string;
+  name: string;
+  is_active?: boolean;
+};
 
 let categoriesCache: { at: number; list: CategoryRecord[] } | null = null;
 let categoriesInflight: Promise<CategoryRecord[]> | null = null;
 const CATEGORIES_TTL_MS = 5 * 60 * 1000;
 
-/** DB categories (source of truth), cached + deduplicated per runtime. */
+/**
+ * DB categories (source of truth), cached + deduplicated per runtime.
+ *
+ * Inactive (legacy) shelves are returned too: a book may still point at one,
+ * and its card should show a real name rather than nothing. Callers that offer
+ * shelves to browse must filter on `is_active` — see `listActiveCategories`.
+ */
 export async function listCategories(
   client?: SupabaseClient | null
 ): Promise<CategoryRecord[]> {
@@ -153,13 +164,13 @@ export async function listCategories(
   }
   if (categoriesInflight) return categoriesInflight;
   categoriesInflight = cachedJson(
-    "categories:v1",
+    "categories:v2",
     CATEGORY_READ_TTL_MS,
     async () => {
       const supabase = clientOrThrow(client);
       const { data, error } = await supabase
         .from("categories")
-        .select("id,slug,name")
+        .select("id,slug,name,is_active")
         .order("name", { ascending: true });
       if (error) {
         console.error("listCategories", error.message);
@@ -172,6 +183,15 @@ export async function listCategories(
     categoriesInflight = null;
   }) as Promise<CategoryRecord[]>;
   return categoriesInflight;
+}
+
+/** Shelves the shop may offer: taxonomy shelves only. */
+export async function listActiveCategories(
+  client?: SupabaseClient | null
+): Promise<CategoryRecord[]> {
+  const list = await listCategories(client);
+  // A DB without the is_active column yet behaves like "everything active".
+  return list.filter((c) => c.is_active !== false);
 }
 
 async function categoryMaps(client?: SupabaseClient | null) {

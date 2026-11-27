@@ -1,4 +1,4 @@
--- Subject catalog import — generated 2026-11-27T11:21:48.955Z
+-- Subject catalog import — generated 2026-11-27T12:22:23.704Z
 -- 6880 books matched by CODE, 15 by ISBN only.
 -- Writes ONLY category_id, subject, sub_subject. Stock and price are untouched.
 
