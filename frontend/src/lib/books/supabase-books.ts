@@ -482,6 +482,37 @@ export async function getRelatedBooks(
 /** Pearson Edexcel IGCSE titles featured on the home “Books for school” shelf. */
 export { SCHOOL_BOOK_ISBNS } from "@/lib/data/school-books";
 
+/**
+ * Curated “New Arrivals” shelf — these titles lead the carousel (in order) and
+ * are chosen for their clean stored covers. Keep them in stock so the cards
+ * don't sell a book the shop can't ship.
+ */
+export const NEW_ARRIVAL_PICKS = [
+  {
+    isbn: "9780128113554",
+    title: "FUNDAMENTALS OF CONGENITAL MINIMALLY INVASIVE CARDIAC SURGERY",
+    author: "VIDA",
+  },
+  {
+    isbn: "9780470093160",
+    title: "SURGERY FOR CONGENITAL HEART DEFECTS 3RD ED",
+    author: "STARK",
+  },
+] as const;
+
+/** Titles kept off the home “New Arrivals” shelf even though they rank as recent. */
+const HIDDEN_NEW_ARRIVAL_TITLES = [
+  "cmake best practices",
+  "functional foods and their implications for health promotion",
+  "handbook of obstetrics gyneacology protocols",
+  "five nights at freddy s fazbear frights graphic novel collection",
+] as const;
+
+function isHiddenNewArrival(title: string): boolean {
+  const key = normalizeTitleKey(title);
+  return HIDDEN_NEW_ARRIVAL_TITLES.some((hidden) => key.startsWith(hidden));
+}
+
 /** Fetch books by ISBN list, preserving the requested order. */
 export async function getBooksByIsbns(
   isbns: readonly string[],
@@ -548,26 +579,107 @@ async function listRecentWithCovers(
 
   return dedupeBooksByTitle(
     ((data ?? []) as unknown as BookRow[]).map((row) => mapBookRow(row, byId))
-  ).filter((book) => {
-    const title = normalizeTitleKey(book.title);
-    const hidden =
-      title.startsWith("cmake best practices") ||
-      title.startsWith("functional foods and their implications for health promotion");
-    return hasProperCover(book.cover_image_url) && !isSchoolIsbn(book.isbn) && !hidden;
-  });
+  ).filter(
+    (book) =>
+      hasProperCover(book.cover_image_url) &&
+      !isSchoolIsbn(book.isbn) &&
+      !isHiddenNewArrival(book.title)
+  );
+}
+
+/** New Arrivals: curated picks first, then the most recent covered titles. */
+async function listNewArrivals(
+  supabase: SupabaseClient,
+  limit: number
+): Promise<Book[]> {
+  const [curated, recent] = await Promise.all([
+    listCuratedNewArrivals(supabase),
+    listRecentWithCovers(supabase, 40),
+  ]);
+
+  const seenIds = new Set(curated.map((book) => book.id));
+  const seenTitles = new Set(curated.map((book) => normalizeTitleKey(book.title)));
+  const shelf = [...curated];
+
+  for (const book of recent) {
+    if (shelf.length >= limit) break;
+    const key = normalizeTitleKey(book.title);
+    if (seenIds.has(book.id) || seenTitles.has(key)) continue;
+    seenIds.add(book.id);
+    seenTitles.add(key);
+    shelf.push(book);
+  }
+
+  return shelf;
+}
+
+/** Fetch the curated picks by ISBN, falling back to an exact title match. */
+async function listCuratedNewArrivals(
+  supabase: SupabaseClient
+): Promise<Book[]> {
+  const { byId } = await categoryMaps(supabase);
+  const picks = [...NEW_ARRIVAL_PICKS];
+  const toBook = (row: BookRow) => mapBookRow(row, byId);
+
+  // One `.eq()` per pick so PostgREST only ever sees a plain ISBN value.
+  let query = supabase.from("books").select(LIST_COLUMNS);
+  for (const pick of picks) {
+    query = query.or(`isbn13.eq.${pick.isbn},isbn.eq.${pick.isbn}`);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("listCuratedNewArrivals", error.message);
+    throw new Error(error.message);
+  }
+
+  const rows = ((data ?? []) as unknown as BookRow[]).map(toBook);
+  const isAvailable = (book: Book) =>
+    hasProperCover(book.cover_image_url) && book.stock > 0;
+
+  const resolved: Book[] = [];
+  const isTaken = (book: Book) =>
+    resolved.some((chosen) => chosen.id === book.id);
+
+  for (const pick of picks) {
+    const byIsbn = rows.filter(
+      (book) =>
+        !isTaken(book) && book.isbn?.replace(/[^0-9Xx]/g, "") === pick.isbn
+    );
+    let match = byIsbn.find(isAvailable) ?? byIsbn[0];
+
+    // The ISBN row may be missing; retry by exact title.
+    if (!match) {
+      const { data: byTitle, error: titleError } = await supabase
+        .from("books")
+        .select(LIST_COLUMNS)
+        .eq("title", pick.title)
+        .limit(5);
+      if (titleError) {
+        console.error("listCuratedNewArrivals (title)", titleError.message);
+        continue;
+      }
+      const titleRows = ((byTitle ?? []) as unknown as BookRow[]).map(toBook);
+      match = titleRows.find(isAvailable) ?? titleRows[0];
+    }
+
+    if (match && !isTaken(match)) resolved.push(match);
+  }
+
+  return resolved.filter(isAvailable);
 }
 
 /** Homepage sections — falls back when flags are empty on imported stock. */
 export async function getHomeSections(client?: SupabaseClient | null) {
   const supabase = clientOrThrow(client);
 
-  const [recentCovered, schoolBooks] = await Promise.all([
-    listRecentWithCovers(supabase, 40),
+  const [newArrivals, schoolBooks] = await Promise.all([
+    listNewArrivals(supabase, 10),
     getBooksByIsbns(SCHOOL_BOOK_ISBNS, supabase),
   ]);
 
   return {
-    newArrivals: recentCovered.slice(0, 10),
+    newArrivals,
     schoolBooks,
     bestsellers: [] as Book[],
     onSale: [] as Book[],
