@@ -1,217 +1,286 @@
 /**
- * Client subject taxonomy (subject → sub-subjects).
- * Source: AMMAR 1234.xlsx — only these subjects appear in Subjects nav.
+ * Client subject taxonomy — the ONLY shelves the shop recognises.
+ *
+ * Structure: parent subject → sub-subjects (one level).
+ *
+ * Source: the client's `WEBSITE LIST` stock sheet, whose `CATEGORY` column is a
+ * parent subject and whose `SUBJECT` column is a sub-subject under it. Two
+ * names in that sheet were missing here (Artificial Intelligence, Software
+ * Engineering) and are now part of Science & Technology, so every book in the
+ * stock list lands on a real shelf.
+ *
+ * This module is the single source of truth: `@/lib/data/categories` is derived
+ * from it, and `scripts/build_subject_catalog.js` writes books.category_id from
+ * these exact names/slugs.
  */
 
 export type SubSubject = {
+  /** Must match the stock sheet `SUBJECT` value verbatim. */
   name: string;
+  /** Globally unique shelf slug (two parents may share a child name). */
   slug: string;
-  /** Optional shop category slug when it maps 1:1 to the DB. */
-  categorySlug?: string;
+  /** Unique within the parent subject — stable per-subject URL key. */
+  key: string;
 };
 
 export type SubjectGroup = {
+  /** Must match the stock sheet `CATEGORY` value verbatim. */
   name: string;
   slug: string;
-  /** Primary DB category for “browse all in this subject”. */
-  categorySlug?: string;
   children: SubSubject[];
+};
+
+/** Every slug a book's category_id may point at. */
+export type SubjectShelf = {
+  slug: string;
+  name: string;
+  groupName: string;
+  groupSlug: string;
+  /** Set for sub-subjects, null for the parent "view all" shelf. */
+  childName: string | null;
 };
 
 function slugify(name: string): string {
   return name
     .toLowerCase()
     .replace(/&/g, " and ")
-    .replace(/[/+,]/g, " ")
+    .replace(/[/+,.]/g, " ")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
 }
 
-function sub(
-  name: string,
-  categorySlug?: string
-): SubSubject {
-  return { name, slug: slugify(name), categorySlug };
+/**
+ * A sub-subject is written `"Name"`, or `["Name", "key"]` to pin its URL key
+ * (keeps an old link working). Names must be unique across the whole taxonomy,
+ * because every sub-subject has exactly one shelf.
+ */
+type ChildSpec = string | [name: string, key: string];
+
+function group(name: string, children: ChildSpec[]): SubjectGroup {
+  const slug = slugify(name);
+  return {
+    name,
+    slug,
+    children: children.map((child) => {
+      const [childName, key] = Array.isArray(child)
+        ? child
+        : [child, slugify(child)];
+      return { name: childName, key, slug: `${slug}--${key}` };
+    }),
+  };
 }
 
 /**
- * Hierarchy from the client spreadsheet.
- * Display names cleaned lightly for typos; structure matches the sheet.
+ * Hierarchy from the client's stock sheet: each `CATEGORY` is a subject and
+ * each `SUBJECT` under it is a sub-subject. Display names are cleaned lightly;
+ * parent and sub-subject names still match the sheet so the importer can
+ * resolve them.
  */
 export const SUBJECT_GROUPS: SubjectGroup[] = [
-  {
-    name: "Medicine & Healthcare",
-    slug: "medicine-and-healthcare",
-    categorySlug: "medical",
-    children: [
-      sub("Anatomy"),
-      sub("Anesthesia"),
-      sub("Biochemistry"),
-      sub("Cancer"),
-      sub("Cardiac Surgery"),
-      sub("Cardiology"),
-      sub("Community Medicine"),
-      sub("Dentistry"),
-      sub("Dermatology"),
-      sub("ENT"),
-      sub("Forensic Medicine"),
-      sub("Gastroenterology"),
-      sub("Gyn & Obs"),
-      sub("Hematology"),
-      sub("Medical Education"),
-      sub("Medical Lab Technology"),
-      sub("Medicine"),
-      sub("Microbiology & Genetics"),
-      sub("Neurology & Neurosurgery"),
-      sub("Nursing", "nursing"),
-      sub("Ophthalmology"),
-      sub("Orthopedics"),
-      sub("Pathology"),
-      sub("Pediatric Surgery"),
-      sub("Pediatrics"),
-      sub("Pharmacology"),
-      sub("Pharmacy"),
-      sub("Physiology"),
-      sub("Physiotherapy"),
-      sub("Plastic Surgery"),
-      sub("Psychiatry"),
-      sub("Radiology"),
-      sub("Respiratory Diseases"),
-      sub("Surgery"),
-      sub("Urology & Nephrology"),
-    ],
-  },
-  {
-    name: "Business & Management Sciences",
-    slug: "business-and-management-sciences",
-    categorySlug: "business",
-    children: [
-      sub("Accounting"),
-      sub("Administrative Science"),
-      sub("Banking & Finance"),
-      sub("Business Studies"),
-      sub("Marketing"),
-      sub("Management Sciences"),
-      sub("Tourism & Hotel Management"),
-    ],
-  },
-  {
-    name: "Social Sciences",
-    slug: "social-sciences",
-    children: [
-      sub("Economics", "economics"),
-      sub("Education", "education"),
-      sub("English Language", "language"),
-      sub("English Literature", "english-literature"),
-      sub("Fine Art", "art"),
-      sub("Gender Studies"),
-      sub("Geography"),
-      sub("History", "history"),
-      sub("Home Economics"),
-      sub("Islamic Studies", "religion"),
-      sub("Law", "law"),
-      sub("Library Science", "library-information-science"),
-      sub("Media Studies", "mass-communication"),
-      sub("Pakistan Studies", "pakistan-studies"),
-      sub("Philosophy", "philosophy"),
-      sub("Physical Education", "sports-and-recreation"),
-      sub("Political Science & IR", "politics"),
-      sub("Psychology", "psychology"),
-      sub("Research Methodology"),
-      sub("Sociology & Social Work"),
-      sub("Special Education"),
-      sub("Reference", "reference"),
-      sub("Textile & Fashion Design", "fashion"),
-    ],
-  },
-  {
-    name: "Science & Technology",
-    slug: "science-and-technology",
-    categorySlug: "science",
-    children: [
-      sub("Agriculture", "agriculture"),
-      sub("Artificial Intelligence"),
-      sub("Chemistry"),
-      sub("Biotechnology"),
-      sub("Botany"),
-      sub("Computer Science", "computer"),
-      sub("Cyber Security"),
-      sub("Data Science"),
-      sub("Electronics"),
-      sub("Environment"),
-      sub("Fishery"),
-      sub("Food & Nutrition"),
-      sub("Mathematics", "mathematics"),
-      sub("Microbiology & Genetics"),
-      sub("Physics"),
-      sub("Software Engineering"),
-      sub("Statistics"),
-      sub("Veterinary Science", "veterinary"),
-      sub("Zoology / Biology"),
-    ],
-  },
-  {
-    name: "Engineering",
-    slug: "engineering",
-    categorySlug: "engineering",
-    children: [
-      sub("Architecture", "architecture"),
-      sub("Biomedical Engineering"),
-      sub("Chemical Engineering"),
-      sub("Civil Engineering"),
-      sub("Electrical Engineering"),
-      sub("Electronics"),
-      sub("Energy"),
-      sub("Fine Art", "art"),
-      sub("Geology"),
-      sub("Industrial Engineering"),
-      sub("Mechanical Engineering"),
-      sub("Mechatronics & Control Engineering"),
-      sub("Metallurgy & Material Science"),
-      sub("Petroleum Engineering"),
-      sub("Telecommunication Engineering"),
-      sub("Textile & Fashion", "fashion"),
-      sub("Transportation Engineering"),
-      sub("Urban Planning"),
-      sub("Water"),
-    ],
-  },
-  {
-    name: "Books for School",
-    slug: "books-for-school",
-    categorySlug: "children",
-    children: [],
-  },
-  {
-    name: "Urdu Literature",
-    slug: "urdu-literature",
-    categorySlug: "urdu-literature",
-    children: [],
-  },
+  group("Medicine & Healthcare", [
+    "Anatomy",
+    "Anesthesia",
+    "Biochemistry",
+    "Cancer",
+    "Cardiac Surgery",
+    "Cardiology",
+    "Community Medicine",
+    "Dentistry",
+    "Dermatology",
+    "Endocrinology",
+    "ENT",
+    "Forensic Medicine",
+    "Gastroenterology",
+    "Gyn & Obs",
+    "Hematology",
+    "Medical Education",
+    "Medical Lab Technology",
+    "Medicine",
+    "Microbiology & Genetics",
+    "Neurology & Neurosurgery",
+    "Nursing",
+    "Ophthalmology",
+    "Orthopedics",
+    "Pathology",
+    "Pediatric Surgery",
+    "Pediatrics",
+    "Pharmacology",
+    "Pharmacy",
+    "Physiology",
+    "Physiotherapy",
+    "Plastic Surgery",
+    "Psychiatry",
+    "Radiology",
+    "Respiratory Diseases",
+    "Surgery",
+    "Urology & Nephrology",
+  ]),
+  group("Business & Management Sciences", [
+    "Accounting",
+    "Administrative Science",
+    "Banking & Finance",
+    "Business Studies",
+    "Marketing",
+    "Management Sciences",
+    "Tourism & Hotel Management",
+  ]),
+  group("Social Sciences", [
+    "Economics",
+    "Education",
+    "English Language",
+    "English Literature",
+    "Gender Studies",
+    "Geography",
+    "History",
+    "Home Economics",
+    "Islamic Studies",
+    "Law",
+    "Library Science",
+    "Media Studies",
+    "Pakistan Studies",
+    "Philosophy",
+    "Physical Education",
+    "Political Science & IR",
+    "Psychology",
+    "Research Methodology",
+    "Sociology & Social Work",
+    "Special Education",
+    "Reference",
+  ]),
+  group("Science & Technology", [
+    "Agriculture",
+    "Artificial Intelligence",
+    "Biotechnology",
+    "Botany",
+    "Chemistry",
+    "Computer Science",
+    "Cyber Security",
+    "Data Science",
+    "Environment",
+    "Fishery",
+    "Food & Nutrition",
+    "Mathematics",
+    "Physics",
+    "Software Engineering",
+    "Statistics",
+    "Veterinary Science",
+    "Zoology / Biology",
+  ]),
+  group("Engineering", [
+    "Architecture",
+    "Biomedical Engineering",
+    "Chemical Engineering",
+    "Civil Engineering",
+    "Electrical Engineering",
+    "Electronics",
+    "Energy",
+    "Fine Art",
+    "Geology",
+    "Industrial Engineering",
+    "Mechanical Engineering",
+    "Mechatronics & Control Engineering",
+    "Metallurgy & Material Science",
+    "Petroleum Engineering",
+    "Telecommunication Engineering",
+    "Textile & Fashion",
+    "Transportation Engineering",
+    "Urban Planning",
+    "Water",
+  ]),
+  group("Books for School", ["Books for Children"]),
+  group("Urdu Literature", []),
 ];
 
-/** Build shop URL for a parent subject. */
-export function subjectHref(group: SubjectGroup): string {
-  if (group.categorySlug) {
-    return `/shop?category=${encodeURIComponent(group.categorySlug)}`;
-  }
-  return `/shop?q=${encodeURIComponent(group.name)}`;
+/** Parent subject name → group. */
+export const SUBJECT_GROUP_BY_NAME = new Map(
+  SUBJECT_GROUPS.map((g) => [g.name, g])
+);
+
+/** Parent subject slug → group. */
+export const SUBJECT_GROUP_BY_SLUG = new Map(
+  SUBJECT_GROUPS.map((g) => [g.slug, g])
+);
+
+/** Parent shelf plus every sub-subject shelf, in menu order. */
+export const SUBJECT_SHELVES: SubjectShelf[] = SUBJECT_GROUPS.flatMap((g) => [
+  { slug: g.slug, name: g.name, groupName: g.name, groupSlug: g.slug, childName: null },
+  ...g.children.map((c) => ({
+    slug: c.slug,
+    name: c.name,
+    groupName: g.name,
+    groupSlug: g.slug,
+    childName: c.name,
+  })),
+]);
+
+/** Shelf slug → shelf. */
+export const SUBJECT_SHELF_BY_SLUG = new Map(
+  SUBJECT_SHELVES.map((s) => [s.slug, s])
+);
+
+/** Sub-subject name → shelf (names are unique across the taxonomy). */
+export const SUBJECT_SHELF_BY_NAME = new Map(
+  SUBJECT_GROUPS.flatMap((g) =>
+    g.children.map(
+      (c) =>
+        [c.name, SUBJECT_SHELF_BY_SLUG.get(c.slug)!] as [
+          string,
+          SubjectShelf,
+        ]
+    )
+  )
+);
+
+/** Parent subject that owns a sub-subject name. */
+export function parentOfSubSubject(name: string): SubjectGroup | undefined {
+  return SUBJECT_GROUPS.find((g) => g.children.some((c) => c.name === name));
 }
 
-/** Build shop URL for a sub-subject (prefer category, else search within parent). */
+/** Shop URL for a parent subject. */
+export function subjectHref(groupName: string): string {
+  const group = SUBJECT_GROUP_BY_NAME.get(groupName);
+  return `/shop?category=${encodeURIComponent(group?.slug ?? slugify(groupName))}`;
+}
+
+/** Shop URL for a sub-subject: parent shelf + sub key. */
 export function subSubjectHref(
-  group: SubjectGroup,
-  child: SubSubject
+  group: SubjectGroup | string,
+  child: SubSubject | string
 ): string {
+  const groupName = typeof group === "string" ? group : group.name;
+  const childName = typeof child === "string" ? child : child.name;
+  const parent = SUBJECT_GROUP_BY_NAME.get(groupName);
+  const shelf = parent?.children.find((c) => c.name === childName);
   const params = new URLSearchParams();
-  if (child.categorySlug) {
-    params.set("category", child.categorySlug);
-  } else if (group.categorySlug) {
-    params.set("category", group.categorySlug);
-    params.set("q", child.name);
-  } else {
-    params.set("q", child.name);
-  }
+  if (parent) params.set("category", parent.slug);
+  if (shelf) params.set("sub", shelf.key);
+  else params.set("q", childName);
   return `/shop?${params.toString()}`;
+}
+
+/** Display label for a shelf slug, e.g. "Engineering · Electronics". */
+export function shelfLabel(slug: string | null | undefined): string | null {
+  if (!slug) return null;
+  const shelf = SUBJECT_SHELF_BY_SLUG.get(slug);
+  if (!shelf) return null;
+  return shelf.childName ? `${shelf.groupName} · ${shelf.childName}` : shelf.groupName;
+}
+
+/**
+ * Slugs to query when a shopper picks a subject.
+ * Parent → the parent shelf plus every sub-subject shelf under it, so the
+ * parent view still returns titles after books moved to sub-subject shelves.
+ */
+export function shelfSlugsFor(
+  groupSlug: string | null | undefined,
+  subKey?: string | null
+): string[] {
+  const group = groupSlug ? SUBJECT_GROUP_BY_SLUG.get(groupSlug) : undefined;
+  if (!group) return [];
+  if (subKey) {
+    const child = group.children.find((c) => c.key === subKey);
+    return child ? [child.slug] : [group.slug];
+  }
+  return [group.slug, ...group.children.map((c) => c.slug)];
 }

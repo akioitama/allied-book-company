@@ -15,6 +15,9 @@ export type BookRow = {
   price_cents: number;
   cover_image_url: string | null;
   category_id: string | null;
+  /** Canonical stock-sheet names written by the subject importer. */
+  subject?: string | null;
+  sub_subject?: string | null;
   stock: number | null;
   is_featured: boolean | null;
   waypoint_order: number | null;
@@ -111,6 +114,8 @@ export function mapBookRow(
     category_id: row.category_id ?? "",
     category_slug: category?.slug ?? null,
     category_name: category?.name ?? null,
+    subject: row.subject?.trim() || null,
+    sub_subject: row.sub_subject?.trim() || null,
     stock: row.stock ?? 0,
     is_featured: Boolean(row.is_featured),
     waypoint_order: row.waypoint_order ?? null,
@@ -192,8 +197,14 @@ export type ListBooksOpts = {
   author?: string;
   /** Publisher / brand (matches metadata.publisher_name). */
   brand?: string;
-  /** Category slug (matches DB categories.slug). */
+  /** Category slugs (matches DB categories.slug). */
   category?: string;
+  /**
+   * Shelf slugs to query. A parent subject expands to the parent shelf plus
+   * every sub-subject under it (see `shelfSlugsFor`). Takes precedence over
+   * `category`.
+   */
+  categorySlugs?: string[];
   maxPriceCents?: number;
   page?: number;
   pageSize?: number;
@@ -229,9 +240,9 @@ const LIST_READ_TTL_MS = 60 * 1000;
 
 /** Card/list views don't need `description` — keeps payloads small. */
 const LIST_COLUMNS =
-  "id,slug,title,author,price_cents,cover_image_url,category_id,stock," +
-  "is_featured,waypoint_order,isbn,isbn13,discount_percent,is_new," +
-  "is_bestseller,published_at,publish_year,created_at,format,metadata";
+  "id,slug,title,author,price_cents,cover_image_url,category_id,subject," +
+  "sub_subject,stock,is_featured,waypoint_order,isbn,isbn13,discount_percent," +
+  "is_new,is_bestseller,published_at,publish_year,created_at,format,metadata";
 
 /** Collapse near-duplicate catalog rows that share the same title. */
 function normalizeTitleKey(title: string): string {
@@ -308,7 +319,17 @@ async function queryBooks(
     .from("books")
     .select(LIST_COLUMNS, withCount ? { count: "exact" } : {});
 
-  if (opts.category?.trim()) {
+  // Resolve the requested shelves to category ids (one round trip in the query).
+  if (opts.categorySlugs?.length) {
+    const ids = opts.categorySlugs
+      .map((slug) => bySlug.get(slug))
+      .filter((c): c is CategoryRecord => Boolean(c))
+      .map((c) => c.id);
+    if (ids.length === 1) query = query.eq("category_id", ids[0]);
+    else if (ids.length > 1) query = query.in("category_id", ids);
+    // Unknown shelf = no titles; never fall back to the whole catalog.
+    else return { books: [], total: 0 };
+  } else if (opts.category?.trim()) {
     const cat = bySlug.get(opts.category.trim());
     // Unknown shelf = no titles; never fall back to the whole catalog.
     if (!cat) return { books: [], total: 0 };

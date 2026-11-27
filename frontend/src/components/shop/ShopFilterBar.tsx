@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { SUBJECT_GROUPS } from "@/lib/data/subjects";
+import { SUBJECT_GROUPS, shelfSlugsFor } from "@/lib/data/subjects";
 import { cn } from "@/lib/utils";
 
 type Option = {
@@ -17,6 +17,8 @@ type FilterDropdownProps = {
   className?: string;
   menuClassName?: string;
   children?: ReactNode;
+  /** Overrides the trigger text (e.g. a hierarchical "Parent · Child"). */
+  display?: string;
 };
 
 function FilterDropdown({
@@ -27,14 +29,16 @@ function FilterDropdown({
   className,
   menuClassName,
   children,
+  display: displayOverride,
 }: FilterDropdownProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const active = options.find((o) => o.value === value);
   const display =
-    active && active.value !== "" && active.value !== "all"
+    displayOverride ??
+    (active && active.value !== "" && active.value !== "all"
       ? `${label}: ${active.label}`
-      : label;
+      : label);
 
   useEffect(() => {
     if (!open) return;
@@ -127,7 +131,10 @@ function FilterDropdown({
 export type ShopFilters = {
   sort: string;
   featured: string;
+  /** Parent subject slug, e.g. `engineering`. */
   category: string;
+  /** Sub-subject key inside the parent, e.g. `electronics`. */
+  sub: string;
   author: string;
   publishDate: string;
   purchase: string;
@@ -154,13 +161,16 @@ const PURCHASE_OPTIONS: Option[] = [
 ];
 
 export function ShopFilterBar({ filters, onChange }: Props) {
-  const subjectOptions: Option[] = [
-    { value: "", label: "All subjects" },
-    ...SUBJECT_GROUPS.filter((g) => g.categorySlug).map((g) => ({
-      value: g.categorySlug!,
-      label: g.name,
-    })),
-  ];
+  const group = filters.category
+    ? SUBJECT_GROUPS.find((g) => g.slug === filters.category)
+    : undefined;
+  const child = group?.children.find((c) => c.key === filters.sub);
+  const subjectLabel = group
+    ? `${group.name}${child ? ` · ${child.name}` : ""}`
+    : "All subjects";
+
+  const pickSubject = (groupSlug: string, subKey = "") =>
+    onChange({ category: groupSlug, sub: subKey });
 
   return (
     <div className="relative z-30 border-b border-[#E5E7EB] bg-white">
@@ -175,9 +185,60 @@ export function ShopFilterBar({ filters, onChange }: Props) {
         <FilterDropdown
           label="Subjects"
           value={filters.category}
-          options={subjectOptions}
-          onChange={(category) => onChange({ category })}
-        />
+          options={[]}
+          onChange={(groupSlug) => pickSubject(groupSlug)}
+          menuClassName="min-w-[17rem] w-[17rem]"
+          display={subjectLabel}
+        >
+          <div className="py-1">
+            <button
+              type="button"
+              onClick={() => pickSubject("")}
+              className={cn(
+                "block w-full px-4 py-2 text-left font-body text-sm transition hover:bg-[#F3F4F6]",
+                !group ? "bg-[#EFF6FF] font-medium text-oxblood" : "text-[#374151]"
+              )}
+            >
+              All subjects
+            </button>
+            {SUBJECT_GROUPS.map((g) => (
+              <div key={g.slug} className="border-t border-[#F3F4F6] first:border-t-0">
+                <button
+                  type="button"
+                  onClick={() => pickSubject(g.slug)}
+                  className={cn(
+                    "block w-full px-4 py-2 text-left font-body text-sm font-medium transition hover:bg-[#F3F4F6]",
+                    group?.slug === g.slug && !child
+                      ? "bg-[#EFF6FF] text-oxblood"
+                      : "text-[#111827]"
+                  )}
+                >
+                  {g.name}
+                </button>
+                {g.children.length > 0 && (
+                  <ul className="pb-1 pl-3">
+                    {g.children.map((c) => (
+                      <li key={c.slug}>
+                        <button
+                          type="button"
+                          onClick={() => pickSubject(g.slug, c.key)}
+                          className={cn(
+                            "block w-full px-4 py-1.5 text-left font-body text-[0.82rem] transition hover:bg-[#F3F4F6]",
+                            child?.slug === c.slug
+                              ? "bg-[#EFF6FF] font-medium text-oxblood"
+                              : "text-[#4B5563]"
+                          )}
+                        >
+                          {c.name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        </FilterDropdown>
         <FilterDropdown
           label="Author"
           value={filters.author ? "custom" : "all"}
@@ -301,7 +362,7 @@ export function filtersToQueryArgs(filters: ShopFilters, q: string) {
     q: q || undefined,
     author: filters.author.trim() || undefined,
     brand: brandQuery,
-    category: filters.category || undefined,
+    categorySlugs: shelfSlugsFor(filters.category, filters.sub),
     orderBy,
     ascending,
     relevanceSort: filters.sort === "relevance" && Boolean(q.trim()),

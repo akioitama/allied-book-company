@@ -23,6 +23,7 @@ const DEFAULT_FILTERS: ShopFilters = {
   sort: "relevance",
   featured: "all",
   category: "",
+  sub: "",
   author: "",
   publishDate: "all",
   purchase: "all",
@@ -34,6 +35,7 @@ export function ShopCatalog() {
   const params = useSearchParams();
   const initialQ = params.get("q") ?? "";
   const initialCategory = params.get("category") ?? "";
+  const initialSub = params.get("sub") ?? "";
   const initialAuthor = params.get("author") ?? "";
   const initialBrand = params.get("brand") ?? "";
 
@@ -41,6 +43,7 @@ export function ShopCatalog() {
   const [filters, setFilters] = useState<ShopFilters>({
     ...DEFAULT_FILTERS,
     category: initialCategory,
+    sub: initialSub,
     author: initialAuthor,
     brand: initialBrand,
   });
@@ -75,12 +78,14 @@ export function ShopCatalog() {
     }
     const nextQ = params.get("q") ?? "";
     const nextCategory = params.get("category") ?? "";
+    const nextSub = params.get("sub") ?? "";
     const nextAuthor = params.get("author") ?? "";
     const nextBrand = params.get("brand") ?? "";
     setQ(nextQ);
     setFilters((f) => ({
       ...f,
       category: nextCategory,
+      sub: nextSub,
       author: nextAuthor,
       brand: nextBrand,
     }));
@@ -93,6 +98,11 @@ export function ShopCatalog() {
       const slug = patch.category ?? "";
       if (slug) next.set("category", slug);
       else next.delete("category");
+    }
+    if ("sub" in patch) {
+      const sub = patch.sub ?? "";
+      if (sub) next.set("sub", sub);
+      else next.delete("sub");
     }
     if ("author" in patch) {
       const author = patch.author?.trim() ?? "";
@@ -110,7 +120,12 @@ export function ShopCatalog() {
   const updateFilters = (patch: Partial<ShopFilters>) => {
     setFilters((f) => ({ ...f, ...patch }));
     setPage(1);
-    if ("category" in patch || "author" in patch || "brand" in patch) {
+    if (
+      "category" in patch ||
+      "sub" in patch ||
+      "author" in patch ||
+      "brand" in patch
+    ) {
       syncParams(patch);
     }
   };
@@ -150,8 +165,15 @@ export function ShopCatalog() {
   }, [load]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const activeGroup = filters.category
+    ? SUBJECT_GROUPS.find((g) => g.slug === filters.category)
+    : undefined;
+  const activeChild = filters.sub
+    ? activeGroup?.children.find((c) => c.key === filters.sub)
+    : undefined;
   const activeSubject =
-    SUBJECT_GROUPS.find((g) => g.categorySlug === filters.category)?.name ??
+    activeChild?.name ??
+    activeGroup?.name ??
     shelves.find((c) => c.slug === filters.category)?.name;
   const searchTerm = q.trim();
   const authorTerm = filters.author.trim();

@@ -1,98 +1,41 @@
 import type { Category } from "@/types";
+import { SUBJECT_SHELVES, SUBJECT_GROUPS } from "@/lib/data/subjects";
 
 /**
- * Static nav taxonomy. Names/slugs mirror the DB `categories` table exactly
- * (kept in sync by scripts/categorize_books.py) so every nav link resolves
- * to a real, populated shelf.
+ * Nav taxonomy — derived from `subjects.ts`, never hand-written.
+ *
+ * Every shelf a book can sit on is a subject (parent) or a sub-subject, so the
+ * shop can only ever browse shelves that appear in the header's Subjects menu.
+ * Parent subjects come first, then each parent's sub-subjects, so the generic
+ * "All subjects" dropdown reads as a tree.
  */
-const ALL_CATEGORIES: ReadonlyArray<readonly [name: string, slug: string]> = [
-  ["Adult Colouring Books", "adult-colouring-books"],
-  ["Agriculture", "agriculture"],
-  ["Anthropology", "anthropology"],
-  ["Antiques & Collectibles", "antiques-and-collectibles"],
-  ["Archaeology", "archaeology"],
-  ["Architecture", "architecture"],
-  ["Art", "art"],
-  ["Automobiles", "automobiles"],
-  ["Aviation", "aviation"],
-  ["Bio & Autobiography", "bio-and-autobiography"],
-  ["Body, Mind & Spirit", "body-mind-and-spirit"],
-  ["Business", "business"],
-  ["Children", "children"],
-  ["Classics", "classics"],
-  ["Collector's Editions", "collectors-editions"],
-  ["Computer", "computer"],
-  ["Cooking", "cooking"],
-  ["Crafts", "crafts"],
-  ["Economics", "economics"],
-  ["Education", "education"],
-  ["Engineering", "engineering"],
-  ["English Literature", "english-literature"],
-  ["Fashion", "fashion"],
-  ["Fiction", "fiction"],
-  ["Gardening & Landscaping", "gardening-and-landscaping"],
-  ["Graphic Novels & Manga", "graphic-novels-and-manga"],
-  ["Health & Fitness", "health-and-fitness"],
-  ["History", "history"],
-  ["Home & Interior", "home-and-interior"],
-  ["Humour", "humour"],
-  ["Language", "language"],
-  ["Law", "law"],
-  ["Library & Information Science", "library-information-science"],
-  ["Linguistics", "linguistics"],
-  ["Literary Criticism", "literary-criticism"],
-  ["Literature", "literature"],
-  ["Mass Communication", "mass-communication"],
-  ["Mathematics", "mathematics"],
-  ["Medical", "medical"],
-  ["Middle Eastern Studies", "middle-eastern-studies"],
-  ["Music", "music"],
-  ["Nature", "nature"],
-  ["Nursing", "nursing"],
-  ["Pakistan Studies", "pakistan-studies"],
-  ["Performing Arts", "performing-arts"],
-  ["Pets", "pets"],
-  ["Philosophy", "philosophy"],
-  ["Photography", "photography"],
-  ["Poetry", "poetry"],
-  ["Politics", "politics"],
-  ["Psychology", "psychology"],
-  ["Reference", "reference"],
-  ["Religion", "religion"],
-  ["Science", "science"],
-  ["Self Help", "self-help"],
-  ["Sports & Recreation", "sports-and-recreation"],
-  ["Technology", "technology"],
-  ["Urdu Literature", "urdu-literature"],
-  ["Veterinary", "veterinary"],
-];
-
-export const categories: Category[] = ALL_CATEGORIES.map(([name, slug], i) => ({
+export const categories: Category[] = SUBJECT_SHELVES.map((shelf, i) => ({
   id: `cat-${String(i + 1).padStart(3, "0")}`,
-  slug,
-  name,
+  slug: shelf.slug,
+  name: shelf.childName
+    ? `${shelf.groupName} · ${shelf.childName}`
+    : shelf.groupName,
   coordinate_label: "",
-  description: `Browse titles in ${name}.`,
+  description: shelf.childName
+    ? `Browse ${shelf.childName} titles in ${shelf.groupName}.`
+    : `Browse titles in ${shelf.groupName}.`,
 }));
 
 /** Shown as quick links in the secondary header (fills the bar). */
 export const POPULAR_CATEGORY_SLUGS = [
   "medical",
-  "english-literature",
+  "medical--cardiology",
+  "business--management-sciences",
+  "social-sciences--english-literature",
+  "social-sciences--history",
+  "science-and-technology--computer-science",
+  "science-and-technology--artificial-intelligence",
+  "science-and-technology--mathematics",
+  "engineering--civil-engineering",
+  "engineering--mechanical-engineering",
+  "engineering--architecture",
+  "books-for-school",
   "urdu-literature",
-  "bio-and-autobiography",
-  "business",
-  "classics",
-  "collectors-editions",
-  "fiction",
-  "graphic-novels-and-manga",
-  "history",
-  "literature",
-  "philosophy",
-  "politics",
-  "religion",
-  "science",
-  "self-help",
 ] as const;
 
 export const popularCategories = POPULAR_CATEGORY_SLUGS.map(
@@ -102,3 +45,9 @@ export const popularCategories = POPULAR_CATEGORY_SLUGS.map(
 export function getCategoryBySlug(slug: string) {
   return categories.find((c) => c.slug === slug);
 }
+
+/** Parent subjects only — the top level of the taxonomy. */
+export const parentCategories: Category[] = SUBJECT_GROUPS.map((g) =>
+  categories.find((c) => c.slug === g.slug)!
+).filter(Boolean);
+

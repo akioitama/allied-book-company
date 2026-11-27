@@ -18,6 +18,9 @@ export type Book = {
   /** Resolved from the DB categories table when available. */
   category_slug?: string | null;
   category_name?: string | null;
+  /** Canonical stock-sheet subject / sub-subject names. */
+  subject?: string | null;
+  sub_subject?: string | null;
   stock: number;
   is_featured: boolean;
   waypoint_order: number | null;
