@@ -320,15 +320,23 @@ async function queryBooks(
     .select(LIST_COLUMNS, withCount ? { count: "exact" } : {});
 
   // Resolve the requested shelves to category ids (one round trip in the query).
-  if (opts.categorySlugs?.length) {
+  // An explicit selection must always narrow the result: an unknown shelf returns
+  // no titles rather than silently falling back to the whole catalog.
+  if (opts.categorySlugs) {
     const ids = opts.categorySlugs
       .map((slug) => bySlug.get(slug))
       .filter((c): c is CategoryRecord => Boolean(c))
       .map((c) => c.id);
-    if (ids.length === 1) query = query.eq("category_id", ids[0]);
-    else if (ids.length > 1) query = query.in("category_id", ids);
-    // Unknown shelf = no titles; never fall back to the whole catalog.
-    else return { books: [], total: 0 };
+    if (ids.length === 1) {
+      query = query.eq("category_id", ids[0]);
+    } else if (ids.length > 1) {
+      query = query.in("category_id", ids);
+    } else {
+      // Selected but unresolved: narrow to the parent shelf if we can, else 0.
+      const parent = opts.category ? bySlug.get(opts.category.trim()) : undefined;
+      if (!parent) return { books: [], total: 0 };
+      query = query.eq("category_id", parent.id);
+    }
   } else if (opts.category?.trim()) {
     const cat = bySlug.get(opts.category.trim());
     // Unknown shelf = no titles; never fall back to the whole catalog.

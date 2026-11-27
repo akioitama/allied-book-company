@@ -68,27 +68,39 @@ export function ShopCatalog() {
     };
   }, []);
 
-  /** Route-driven state updates are synchronous; don't re-debounce them. */
-  const paramsLoaded = useRef(false);
+  /**
+   * Mirror the URL into state.
+   *
+   * `useSearchParams()` is not populated on the very first client render, so
+   * reading it once in a `useState` initialiser leaves filters empty and the
+   * shop shows the whole catalog (e.g. arriving from the header Subjects menu).
+   * Syncing on every `params` change keeps state and URL identical; the setter
+   * bails out when nothing changed, so an unchanged URL costs no extra render.
+   */
   useEffect(() => {
-    if (!paramsLoaded.current) {
-      // First run mirrors the initial state — nothing has changed yet.
-      paramsLoaded.current = true;
-      return;
-    }
     const nextQ = params.get("q") ?? "";
     const nextCategory = params.get("category") ?? "";
     const nextSub = params.get("sub") ?? "";
     const nextAuthor = params.get("author") ?? "";
     const nextBrand = params.get("brand") ?? "";
-    setQ(nextQ);
-    setFilters((f) => ({
-      ...f,
-      category: nextCategory,
-      sub: nextSub,
-      author: nextAuthor,
-      brand: nextBrand,
-    }));
+    setQ((prev) => (prev === nextQ ? prev : nextQ));
+    setFilters((f) => {
+      if (
+        f.category === nextCategory &&
+        f.sub === nextSub &&
+        f.author === nextAuthor &&
+        f.brand === nextBrand
+      ) {
+        return f;
+      }
+      return {
+        ...f,
+        category: nextCategory,
+        sub: nextSub,
+        author: nextAuthor,
+        brand: nextBrand,
+      };
+    });
     setPage(1);
   }, [params]);
 

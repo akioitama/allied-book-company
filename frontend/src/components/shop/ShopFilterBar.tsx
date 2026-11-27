@@ -362,7 +362,14 @@ export function filtersToQueryArgs(filters: ShopFilters, q: string) {
     q: q || undefined,
     author: filters.author.trim() || undefined,
     brand: brandQuery,
-    categorySlugs: shelfSlugsFor(filters.category, filters.sub),
+    // `undefined` = no subject selected. A selection that cannot be resolved
+    // yields an empty list, which the query treats as "no titles" rather than
+    // falling back to the whole catalog.
+    categorySlugs: filters.category
+      ? shelfSlugsFor(filters.category, filters.sub)
+      : undefined,
+    // Keep the raw slug too, so an unresolvable subject narrows to nothing.
+    category: filters.category || undefined,
     orderBy,
     ascending,
     relevanceSort: filters.sort === "relevance" && Boolean(q.trim()),

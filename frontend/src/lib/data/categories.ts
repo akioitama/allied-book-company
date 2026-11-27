@@ -23,9 +23,9 @@ export const categories: Category[] = SUBJECT_SHELVES.map((shelf, i) => ({
 
 /** Shown as quick links in the secondary header (fills the bar). */
 export const POPULAR_CATEGORY_SLUGS = [
-  "medical",
-  "medical--cardiology",
-  "business--management-sciences",
+  "medicine-and-healthcare",
+  "medicine-and-healthcare--cardiology",
+  "business-and-management-sciences--management-sciences",
   "social-sciences--english-literature",
   "social-sciences--history",
   "science-and-technology--computer-science",
@@ -38,9 +38,13 @@ export const POPULAR_CATEGORY_SLUGS = [
   "urdu-literature",
 ] as const;
 
-export const popularCategories = POPULAR_CATEGORY_SLUGS.map(
-  (slug) => categories.find((c) => c.slug === slug)!
-).filter(Boolean);
+/**
+ * Quick links, skipping any slug that is not in the taxonomy (e.g. after a
+ * rename) so a dead link can never render.
+ */
+export const popularCategories = POPULAR_CATEGORY_SLUGS.map((slug) =>
+  categories.find((c) => c.slug === slug)
+).filter((c): c is Category => Boolean(c));
 
 export function getCategoryBySlug(slug: string) {
   return categories.find((c) => c.slug === slug);
